@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import feezyLogo from "@/assets/feezy-logo.png";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
@@ -8,32 +9,23 @@ interface LogoProps {
 
 export function Logo({ size = "md", showText = true, className }: LogoProps) {
   const sizes = {
-    sm: { icon: "w-7 h-7", text: "text-lg", letter: "text-sm" },
-    md: { icon: "w-9 h-9", text: "text-xl", letter: "text-base" },
-    lg: { icon: "w-12 h-12", text: "text-2xl", letter: "text-lg" },
+    sm: { icon: "w-8 h-8", text: "text-lg" },
+    md: { icon: "w-10 h-10", text: "text-xl" },
+    lg: { icon: "w-14 h-14", text: "text-2xl" },
   };
 
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
-      <div
-        className={cn(
-          "relative flex items-center justify-center rounded-xl bg-gradient-primary shadow-md",
-          sizes[size].icon
-        )}
-      >
-        {/* Inner glow effect */}
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent" />
-        <span
-          className={cn(
-            "font-bold text-primary-foreground relative z-10",
-            sizes[size].letter
-          )}
-        >
-          F
-        </span>
-      </div>
+      <img 
+        src={feezyLogo} 
+        alt="Feezy Logo" 
+        className={cn("object-contain", sizes[size].icon)}
+      />
       {showText && (
-        <span className={cn("font-bold text-foreground", sizes[size].text)}>
+        <span className={cn(
+          "font-bold bg-gradient-primary bg-clip-text text-transparent",
+          sizes[size].text
+        )}>
           Feezy
         </span>
       )}
