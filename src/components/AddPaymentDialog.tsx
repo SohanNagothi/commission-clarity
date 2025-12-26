@@ -35,10 +35,8 @@ export function AddPaymentDialog({ preselectedClientId }: AddPaymentDialogProps)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would save to the database
     toast.success("Payment added successfully");
     setOpen(false);
-    // Reset form
     if (!preselectedClientId) setClientId("");
     setMonthFor("");
     setAmount("");
@@ -91,11 +89,11 @@ export function AddPaymentDialog({ preselectedClientId }: AddPaymentDialogProps)
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
+            <Label htmlFor="amount">Amount (₹)</Label>
             <Input
               id="amount"
               type="number"
-              placeholder="0.00"
+              placeholder="5000"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required

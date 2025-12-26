@@ -3,6 +3,7 @@ import { TrendingUp, Wallet, Clock, Calendar } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentCard } from "@/components/PaymentRow";
+import { formatCurrency } from "@/lib/format";
 import {
   calculateTotalCommission,
   calculateTotalReceived,
@@ -17,7 +18,6 @@ export default function Dashboard() {
   const pending = calculatePending();
   const thisMonth = calculateThisMonthEarnings();
 
-  // Get recent payments (last 5)
   const recentPayments = [...payments]
     .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
     .slice(0, 5);
@@ -40,7 +40,7 @@ export default function Dashboard() {
       <div className="grid-stats">
         <StatCard
           title="Total Commission"
-          value={`$${totalCommission.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          value={formatCurrency(totalCommission)}
           subtitle="All time earnings"
           icon={TrendingUp}
           variant="default"
@@ -48,7 +48,7 @@ export default function Dashboard() {
         />
         <StatCard
           title="Received"
-          value={`$${totalReceived.toLocaleString()}`}
+          value={formatCurrency(totalReceived)}
           subtitle="From owner/platform"
           icon={Wallet}
           variant="success"
@@ -56,7 +56,7 @@ export default function Dashboard() {
         />
         <StatCard
           title="Pending"
-          value={`$${pending.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          value={formatCurrency(pending)}
           subtitle="Awaiting settlement"
           icon={Clock}
           variant="warning"
@@ -64,7 +64,7 @@ export default function Dashboard() {
         />
         <StatCard
           title="This Month"
-          value={`$${thisMonth.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          value={formatCurrency(thisMonth)}
           subtitle="December 2024"
           icon={Calendar}
           trend={{ value: 12, positive: true }}

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/format";
 import type { Client } from "@/data/mockData";
 
 interface ClientCardProps {
@@ -20,8 +21,8 @@ export function ClientCard({ client, index = 0 }: ClientCardProps) {
         <Card variant="interactive" className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-primary-muted flex items-center justify-center">
-                <span className="font-semibold text-primary">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <span className="font-semibold text-white">
                   {client.name.charAt(0)}
                 </span>
               </div>
@@ -32,7 +33,7 @@ export function ClientCard({ client, index = 0 }: ClientCardProps) {
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium">${client.defaultFee}</p>
+                <p className="text-sm font-medium">{formatCurrency(client.defaultFee)}</p>
                 <p className="text-xs text-muted-foreground">
                   {client.commissionPercentage}% commission
                 </p>

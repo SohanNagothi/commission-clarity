@@ -13,11 +13,28 @@ import {
   Area,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/format";
 import { getMonthlyData, getTopClients } from "@/data/mockData";
 
 export default function Analytics() {
   const monthlyData = getMonthlyData();
   const topClients = getTopClients();
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-card border rounded-lg p-3 shadow-lg">
+          <p className="text-sm font-medium mb-1">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} className="text-sm" style={{ color: entry.color }}>
+              {entry.name}: {formatCurrency(entry.value)}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="page-container section-spacing">
@@ -50,33 +67,27 @@ export default function Analytics() {
                   <AreaChart data={monthlyData}>
                     <defs>
                       <linearGradient id="colorEarnings" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(160, 35%, 40%)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(160, 35%, 40%)" stopOpacity={0} />
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                     <XAxis
                       dataKey="month"
                       className="text-xs"
-                      tick={{ fill: "hsl(220, 10%, 45%)" }}
+                      tick={{ fill: "hsl(var(--muted-foreground))" }}
                     />
                     <YAxis
                       className="text-xs"
-                      tick={{ fill: "hsl(220, 10%, 45%)" }}
-                      tickFormatter={(value) => `$${value}`}
+                      tick={{ fill: "hsl(var(--muted-foreground))" }}
+                      tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                     />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(0, 0%, 100%)",
-                        border: "1px solid hsl(40, 20%, 90%)",
-                        borderRadius: "0.75rem",
-                      }}
-                      formatter={(value: number) => [`$${value}`, "Earnings"]}
-                    />
+                    <Tooltip content={<CustomTooltip />} />
                     <Area
                       type="monotone"
                       dataKey="earnings"
-                      stroke="hsl(160, 35%, 40%)"
+                      name="Earnings"
+                      stroke="hsl(var(--primary))"
                       strokeWidth={2}
                       fill="url(#colorEarnings)"
                     />
@@ -105,27 +116,21 @@ export default function Analytics() {
                     <XAxis
                       dataKey="month"
                       className="text-xs"
-                      tick={{ fill: "hsl(220, 10%, 45%)" }}
+                      tick={{ fill: "hsl(var(--muted-foreground))" }}
                     />
                     <YAxis
                       className="text-xs"
-                      tick={{ fill: "hsl(220, 10%, 45%)" }}
-                      tickFormatter={(value) => `$${value}`}
+                      tick={{ fill: "hsl(var(--muted-foreground))" }}
+                      tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                     />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(0, 0%, 100%)",
-                        border: "1px solid hsl(40, 20%, 90%)",
-                        borderRadius: "0.75rem",
-                      }}
-                      formatter={(value: number) => [`$${value}`, "Pending"]}
-                    />
+                    <Tooltip content={<CustomTooltip />} />
                     <Line
                       type="monotone"
                       dataKey="pending"
-                      stroke="hsl(38, 92%, 50%)"
+                      name="Pending"
+                      stroke="hsl(var(--warning))"
                       strokeWidth={2}
-                      dot={{ fill: "hsl(38, 92%, 50%)", strokeWidth: 0, r: 4 }}
+                      dot={{ fill: "hsl(var(--warning))", strokeWidth: 0, r: 4 }}
                       activeDot={{ r: 6 }}
                     />
                   </LineChart>
@@ -153,31 +158,24 @@ export default function Analytics() {
                     <XAxis
                       dataKey="month"
                       className="text-xs"
-                      tick={{ fill: "hsl(220, 10%, 45%)" }}
+                      tick={{ fill: "hsl(var(--muted-foreground))" }}
                     />
                     <YAxis
                       className="text-xs"
-                      tick={{ fill: "hsl(220, 10%, 45%)" }}
-                      tickFormatter={(value) => `$${value}`}
+                      tick={{ fill: "hsl(var(--muted-foreground))" }}
+                      tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                     />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(0, 0%, 100%)",
-                        border: "1px solid hsl(40, 20%, 90%)",
-                        borderRadius: "0.75rem",
-                      }}
-                      formatter={(value: number) => [`$${value}`]}
-                    />
+                    <Tooltip content={<CustomTooltip />} />
                     <Bar
                       dataKey="earnings"
                       name="Earnings"
-                      fill="hsl(160, 35%, 40%)"
+                      fill="hsl(var(--primary))"
                       radius={[4, 4, 0, 0]}
                     />
                     <Bar
                       dataKey="received"
                       name="Received"
-                      fill="hsl(145, 60%, 40%)"
+                      fill="hsl(var(--success))"
                       radius={[4, 4, 0, 0]}
                     />
                   </BarChart>
@@ -201,7 +199,7 @@ export default function Analytics() {
               <div className="space-y-4">
                 {topClients.map((client, index) => (
                   <div key={client.name} className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-primary-muted flex items-center justify-center text-sm font-semibold text-primary">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-sm font-semibold text-white">
                       {index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -213,12 +211,12 @@ export default function Analytics() {
                             width: `${(client.earnings / topClients[0].earnings) * 100}%`,
                           }}
                           transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
-                          className="h-full bg-primary rounded-full"
+                          className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
                         />
                       </div>
                     </div>
                     <span className="font-semibold text-sm">
-                      ${client.earnings.toLocaleString()}
+                      {formatCurrency(client.earnings)}
                     </span>
                   </div>
                 ))}

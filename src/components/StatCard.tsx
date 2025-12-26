@@ -18,19 +18,19 @@ interface StatCardProps {
 
 const variantStyles = {
   default: {
-    icon: "bg-primary-muted text-primary",
+    icon: "bg-primary/10 text-primary",
     trend: "text-muted-foreground",
   },
   success: {
-    icon: "bg-success-muted text-success",
+    icon: "bg-success/10 text-success",
     trend: "text-success",
   },
   warning: {
-    icon: "bg-warning-muted text-warning",
+    icon: "bg-warning/10 text-warning",
     trend: "text-warning",
   },
   accent: {
-    icon: "bg-accent-muted text-accent",
+    icon: "bg-accent/10 text-accent",
     trend: "text-accent",
   },
 };

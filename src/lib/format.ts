@@ -55,6 +55,9 @@ export function formatMonth(monthString: string): string {
   }).format(date);
 }
 
+// Alias for formatMonth
+export const formatMonthYear = formatMonth;
+
 /**
  * Format month short (e.g., "2024-01" -> "Jan 2024")
  */
