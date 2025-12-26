@@ -1,10 +1,11 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Mail, DollarSign, Percent } from "lucide-react";
+import { ArrowLeft, Mail, IndianRupee, Percent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AddPaymentDialog } from "@/components/AddPaymentDialog";
 import { PaymentCard } from "@/components/PaymentRow";
+import { formatCurrency, formatMonthYear } from "@/lib/format";
 import { clients, getClientPayments } from "@/data/mockData";
 
 export default function ClientDetail() {
@@ -28,7 +29,6 @@ export default function ClientDetail() {
     );
   }
 
-  // Group payments by month
   const paymentsByMonth = clientPayments.reduce((acc, payment) => {
     const month = payment.monthFor;
     if (!acc[month]) acc[month] = [];
@@ -43,7 +43,6 @@ export default function ClientDetail() {
 
   return (
     <div className="page-container section-spacing">
-      {/* Back button */}
       <Link to="/clients">
         <Button variant="ghost" size="sm" className="-ml-2">
           <ArrowLeft className="h-4 w-4" />
@@ -58,8 +57,8 @@ export default function ClientDetail() {
         className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
       >
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-primary-muted flex items-center justify-center">
-            <span className="font-bold text-2xl text-primary">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <span className="font-bold text-2xl text-white">
               {client.name.charAt(0)}
             </span>
           </div>
@@ -92,18 +91,18 @@ export default function ClientDetail() {
       >
         <Card variant="stat">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-primary-muted">
-              <DollarSign className="h-5 w-5 text-primary" />
+            <div className="p-3 rounded-xl bg-primary/10">
+              <IndianRupee className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Default Fee</p>
-              <p className="text-xl font-bold">${client.defaultFee}</p>
+              <p className="text-xl font-bold">{formatCurrency(client.defaultFee)}</p>
             </div>
           </div>
         </Card>
         <Card variant="stat">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-accent-muted">
+            <div className="p-3 rounded-xl bg-accent/10">
               <Percent className="h-5 w-5 text-accent" />
             </div>
             <div>
@@ -114,12 +113,12 @@ export default function ClientDetail() {
         </Card>
         <Card variant="stat">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-success-muted">
-              <DollarSign className="h-5 w-5 text-success" />
+            <div className="p-3 rounded-xl bg-success/10">
+              <IndianRupee className="h-5 w-5 text-success" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Earned</p>
-              <p className="text-xl font-bold">${totalCommission.toLocaleString()}</p>
+              <p className="text-xl font-bold">{formatCurrency(totalCommission)}</p>
             </div>
           </div>
         </Card>
@@ -142,28 +141,22 @@ export default function ClientDetail() {
               </p>
             ) : (
               <div className="space-y-6">
-                {sortedMonths.map((month) => {
-                  const monthName = new Date(month + "-01").toLocaleDateString(
-                    "en-US",
-                    { month: "long", year: "numeric" }
-                  );
-                  return (
-                    <div key={month}>
-                      <h4 className="font-semibold text-sm text-muted-foreground mb-3">
-                        {monthName}
-                      </h4>
-                      <div className="space-y-3">
-                        {paymentsByMonth[month].map((payment, index) => (
-                          <PaymentCard
-                            key={payment.id}
-                            payment={payment}
-                            index={index}
-                          />
-                        ))}
-                      </div>
+                {sortedMonths.map((month) => (
+                  <div key={month}>
+                    <h4 className="font-semibold text-sm text-muted-foreground mb-3">
+                      {formatMonthYear(month)}
+                    </h4>
+                    <div className="space-y-3">
+                      {paymentsByMonth[month].map((payment, index) => (
+                        <PaymentCard
+                          key={payment.id}
+                          payment={payment}
+                          index={index}
+                        />
+                      ))}
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

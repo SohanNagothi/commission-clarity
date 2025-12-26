@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { formatCurrency, formatDate } from "@/lib/format";
 import type { Settlement } from "@/data/mockData";
 
 interface SettlementRowProps {
@@ -7,12 +8,6 @@ interface SettlementRowProps {
 }
 
 export function SettlementRow({ settlement, index = 0 }: SettlementRowProps) {
-  const date = new Date(settlement.date).toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-
   return (
     <motion.tr
       initial={{ opacity: 0 }}
@@ -22,10 +17,10 @@ export function SettlementRow({ settlement, index = 0 }: SettlementRowProps) {
     >
       <td className="py-4 px-4">
         <span className="font-semibold text-success">
-          ${settlement.amount.toLocaleString()}
+          {formatCurrency(settlement.amount)}
         </span>
       </td>
-      <td className="py-4 px-4 text-muted-foreground">{date}</td>
+      <td className="py-4 px-4 text-muted-foreground">{formatDate(settlement.date)}</td>
       <td className="py-4 px-4 text-muted-foreground">
         {settlement.notes || "—"}
       </td>
@@ -33,14 +28,7 @@ export function SettlementRow({ settlement, index = 0 }: SettlementRowProps) {
   );
 }
 
-// Mobile-friendly card version
 export function SettlementCard({ settlement, index = 0 }: SettlementRowProps) {
-  const date = new Date(settlement.date).toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -50,9 +38,9 @@ export function SettlementCard({ settlement, index = 0 }: SettlementRowProps) {
     >
       <div className="flex justify-between items-start mb-2">
         <span className="font-bold text-lg text-success">
-          ${settlement.amount.toLocaleString()}
+          {formatCurrency(settlement.amount)}
         </span>
-        <span className="text-sm text-muted-foreground">{date}</span>
+        <span className="text-sm text-muted-foreground">{formatDate(settlement.date)}</span>
       </div>
       {settlement.notes && (
         <p className="text-sm text-muted-foreground">{settlement.notes}</p>

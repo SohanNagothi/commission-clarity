@@ -4,6 +4,7 @@ import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AddSettlementDialog } from "@/components/AddSettlementDialog";
 import { SettlementRow, SettlementCard } from "@/components/SettlementRow";
+import { formatCurrency } from "@/lib/format";
 import {
   settlements,
   calculateTotalCommission,
@@ -40,7 +41,7 @@ export default function Settlements() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           title="Total Earned"
-          value={`$${totalCommission.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          value={formatCurrency(totalCommission)}
           subtitle="Your commission"
           icon={TrendingUp}
           variant="default"
@@ -48,7 +49,7 @@ export default function Settlements() {
         />
         <StatCard
           title="Received"
-          value={`$${totalReceived.toLocaleString()}`}
+          value={formatCurrency(totalReceived)}
           subtitle="Already paid to you"
           icon={Wallet}
           variant="success"
@@ -56,7 +57,7 @@ export default function Settlements() {
         />
         <StatCard
           title="Pending"
-          value={`$${pending.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          value={formatCurrency(pending)}
           subtitle="Still owed to you"
           icon={Clock}
           variant="warning"
@@ -82,7 +83,7 @@ export default function Settlements() {
             initial={{ width: 0 }}
             animate={{ width: `${(totalReceived / totalCommission) * 100}%` }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="h-full bg-success rounded-full"
+            className="h-full bg-gradient-to-r from-success to-primary rounded-full"
           />
         </div>
       </motion.div>

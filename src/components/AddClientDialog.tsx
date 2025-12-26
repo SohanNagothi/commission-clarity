@@ -21,10 +21,8 @@ export function AddClientDialog() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would save to the database
     toast.success("Client added successfully");
     setOpen(false);
-    // Reset form
     setName("");
     setEmail("");
     setDefaultFee("");
@@ -48,7 +46,7 @@ export function AddClientDialog() {
             <Label htmlFor="name">Client Name</Label>
             <Input
               id="name"
-              placeholder="John Doe"
+              placeholder="Priya Sharma"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -60,7 +58,7 @@ export function AddClientDialog() {
             <Input
               id="email"
               type="email"
-              placeholder="john@example.com"
+              placeholder="priya@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -69,11 +67,11 @@ export function AddClientDialog() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="fee">Default Fee</Label>
+              <Label htmlFor="fee">Default Fee (₹)</Label>
               <Input
                 id="fee"
                 type="number"
-                placeholder="500"
+                placeholder="5000"
                 value={defaultFee}
                 onChange={(e) => setDefaultFee(e.target.value)}
                 required

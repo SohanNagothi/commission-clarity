@@ -21,10 +21,8 @@ export function AddSettlementDialog() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would save to the database
     toast.success("Settlement recorded successfully");
     setOpen(false);
-    // Reset form
     setAmount("");
     setDate("");
     setNotes("");
@@ -44,11 +42,11 @@ export function AddSettlementDialog() {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount Received</Label>
+            <Label htmlFor="amount">Amount Received (₹)</Label>
             <Input
               id="amount"
               type="number"
-              placeholder="0.00"
+              placeholder="10000"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required

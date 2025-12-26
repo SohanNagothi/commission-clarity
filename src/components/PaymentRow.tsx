@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { formatCurrency, formatDate, formatMonthYear } from "@/lib/format";
 import type { Payment } from "@/data/mockData";
 
 interface PaymentRowProps {
@@ -7,15 +8,6 @@ interface PaymentRowProps {
 }
 
 export function PaymentRow({ payment, index = 0 }: PaymentRowProps) {
-  const monthName = new Date(payment.monthFor + "-01").toLocaleDateString(
-    "en-US",
-    { month: "long", year: "numeric" }
-  );
-  const paymentDate = new Date(payment.paymentDate).toLocaleDateString(
-    "en-US",
-    { month: "short", day: "numeric", year: "numeric" }
-  );
-
   return (
     <motion.tr
       initial={{ opacity: 0 }}
@@ -26,11 +18,13 @@ export function PaymentRow({ payment, index = 0 }: PaymentRowProps) {
       <td className="py-4 px-4">
         <div className="font-medium">{payment.clientName}</div>
       </td>
-      <td className="py-4 px-4 text-muted-foreground">{monthName}</td>
-      <td className="py-4 px-4">
-        <span className="font-semibold">${payment.amount.toLocaleString()}</span>
+      <td className="py-4 px-4 text-muted-foreground">
+        {formatMonthYear(payment.monthFor)}
       </td>
-      <td className="py-4 px-4 text-muted-foreground">{paymentDate}</td>
+      <td className="py-4 px-4">
+        <span className="font-semibold text-primary">{formatCurrency(payment.amount)}</span>
+      </td>
+      <td className="py-4 px-4 text-muted-foreground">{formatDate(payment.paymentDate)}</td>
       <td className="py-4 px-4 text-muted-foreground">
         {payment.notes || "—"}
       </td>
@@ -38,17 +32,7 @@ export function PaymentRow({ payment, index = 0 }: PaymentRowProps) {
   );
 }
 
-// Mobile-friendly card version
 export function PaymentCard({ payment, index = 0 }: PaymentRowProps) {
-  const monthName = new Date(payment.monthFor + "-01").toLocaleDateString(
-    "en-US",
-    { month: "long", year: "numeric" }
-  );
-  const paymentDate = new Date(payment.paymentDate).toLocaleDateString(
-    "en-US",
-    { month: "short", day: "numeric", year: "numeric" }
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -59,12 +43,12 @@ export function PaymentCard({ payment, index = 0 }: PaymentRowProps) {
       <div className="flex justify-between items-start mb-3">
         <div>
           <p className="font-semibold">{payment.clientName}</p>
-          <p className="text-sm text-muted-foreground">{monthName}</p>
+          <p className="text-sm text-muted-foreground">{formatMonthYear(payment.monthFor)}</p>
         </div>
-        <span className="font-bold text-lg">${payment.amount.toLocaleString()}</span>
+        <span className="font-bold text-lg text-primary">{formatCurrency(payment.amount)}</span>
       </div>
       <div className="flex justify-between text-sm text-muted-foreground">
-        <span>Paid on {paymentDate}</span>
+        <span>Paid on {formatDate(payment.paymentDate)}</span>
         {payment.notes && <span>{payment.notes}</span>}
       </div>
     </motion.div>

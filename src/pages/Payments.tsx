@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { AddPaymentDialog } from "@/components/AddPaymentDialog";
 import { PaymentRow, PaymentCard } from "@/components/PaymentRow";
+import { formatCurrency, formatMonthYear } from "@/lib/format";
 import { payments, clients } from "@/data/mockData";
 
 export default function Payments() {
@@ -19,7 +20,6 @@ export default function Payments() {
   const [monthFilter, setMonthFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Get unique months from payments
   const uniqueMonths = [...new Set(payments.map((p) => p.monthFor))].sort().reverse();
 
   const filteredPayments = payments
@@ -93,10 +93,7 @@ export default function Payments() {
             <SelectItem value="all">All Months</SelectItem>
             {uniqueMonths.map((month) => (
               <SelectItem key={month} value={month}>
-                {new Date(month + "-01").toLocaleDateString("en-US", {
-                  month: "long",
-                  year: "numeric",
-                })}
+                {formatMonthYear(month)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -108,13 +105,13 @@ export default function Payments() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="flex items-center justify-between p-4 bg-secondary/50 rounded-xl"
+        className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-accent/5 border rounded-xl"
       >
         <span className="text-sm text-muted-foreground">
           {filteredPayments.length} payment{filteredPayments.length !== 1 && "s"}
         </span>
-        <span className="font-semibold">
-          Total: ${totalAmount.toLocaleString()}
+        <span className="font-semibold text-primary">
+          Total: {formatCurrency(totalAmount)}
         </span>
       </motion.div>
 
