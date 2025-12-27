@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export default function Register() {
   const navigate = useNavigate();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,11 +21,25 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+        },
+      },
+    });
+
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+
     toast.success("Account created! Welcome to Feezy.");
-    navigate("/dashboard");
+    navigate("/dashboard", { replace: true });
     setLoading(false);
   };
 
@@ -92,7 +108,11 @@ export default function Register() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -100,8 +120,15 @@ export default function Register() {
               </p>
             </div>
 
-            <Button type="submit" className="w-full group" size="lg" disabled={loading}>
-              {loading ? "Creating account..." : (
+            <Button
+              type="submit"
+              className="w-full group"
+              size="lg"
+              disabled={loading}
+            >
+              {loading ? (
+                "Creating account..."
+              ) : (
                 <>
                   Create Account
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
@@ -124,17 +151,17 @@ export default function Register() {
 
       {/* Right side - Visual */}
       <div className="hidden lg:flex lg:flex-1 relative overflow-hidden">
-        {/* Gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-accent via-info to-success" />
-        
-        {/* Pattern overlay */}
+
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-full h-full" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }} />
+          <div
+            className="absolute top-0 left-0 w-full h-full"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            }}
+          />
         </div>
-        
-        {/* Content */}
+
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -149,8 +176,8 @@ export default function Register() {
               Join professionals across India
             </h2>
             <p className="text-white/80 leading-relaxed">
-              Teachers, freelancers, and agents trust Feezy to track 
-              their commission-based earnings clearly and stress-free.
+              Teachers, freelancers, and agents trust Feezy to track their
+              commission-based earnings clearly and stress-free.
             </p>
           </div>
         </motion.div>
