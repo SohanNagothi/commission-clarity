@@ -11,37 +11,89 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
-export function AddClientDialog() {
+export function AddClientDialog({
+  onClientAdded,
+}: {
+  onClientAdded?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [defaultFee, setDefaultFee] = useState("");
   const [commission, setCommission] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success("Client added successfully");
-    setOpen(false);
+  const resetForm = () => {
     setName("");
-    setEmail("");
+    setPhone("");
     setDefaultFee("");
     setCommission("");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    /* ---- Auth check ---- */
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      toast.error("You must be logged in");
+      setLoading(false);
+      return;
+    }
+
+    /* ---- Basic validation ---- */
+    if (!name || !phone || !defaultFee || !commission) {
+      toast.error("Please fill all fields");
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await supabase.from("clients").insert({
+      user_id: user.id,
+      name,
+      phone,
+      default_fee: Number(defaultFee),
+      commission_rate: Number(commission),
+      status: "active",
+    });
+
+    if (error) {
+      console.error(error);
+      toast.error("Failed to add client");
+      setLoading(false);
+      return;
+    }
+
+    toast.success("Client added successfully");
+    onClientAdded?.();
+    setOpen(false);
+    resetForm();
+    setLoading(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4 mr-2" />
           Add Client
         </Button>
       </DialogTrigger>
+
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add New Client</DialogTitle>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="name">Client Name</Label>
             <Input
@@ -53,18 +105,19 @@ export function AddClientDialog() {
             />
           </div>
 
+          {/* Phone */}
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="phone">Phone Number</Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="priya@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="phone"
+              placeholder="+91XXXXXXXXXX"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               required
             />
           </div>
 
+          {/* Fees */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="fee">Default Fee (₹)</Label>
@@ -91,17 +144,19 @@ export function AddClientDialog() {
             </div>
           </div>
 
+          {/* Actions */}
           <div className="flex gap-3 pt-2">
             <Button
               type="button"
               variant="outline"
               className="flex-1"
               onClick={() => setOpen(false)}
+              disabled={loading}
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              Add Client
+            <Button type="submit" className="flex-1" disabled={loading}>
+              {loading ? "Adding..." : "Add Client"}
             </Button>
           </div>
         </form>

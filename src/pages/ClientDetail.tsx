@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Mail, IndianRupee, Percent } from "lucide-react";
@@ -6,12 +7,103 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AddPaymentDialog } from "@/components/AddPaymentDialog";
 import { PaymentCard } from "@/components/PaymentRow";
 import { formatCurrency, formatMonthYear } from "@/lib/format";
-import { clients, getClientPayments } from "@/data/mockData";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+
+/* =========================
+   UI TYPES (IMPORTANT)
+========================= */
+
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+  default_fee: number;
+  commission_percentage: number;
+  status: "active" | "inactive";
+}
+
+interface UIPayment {
+  id: string;
+  clientId: string;
+  clientName: string;
+  amount: number;
+  paymentDate: string;
+  monthFor: string;
+}
 
 export default function ClientDetail() {
-  const { id } = useParams();
-  const client = clients.find((c) => c.id === id);
-  const clientPayments = id ? getClientPayments(id) : [];
+  const { id } = useParams<{ id: string }>();
+
+  const [client, setClient] = useState<Client | null>(null);
+  const [payments, setPayments] = useState<UIPayment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  /* =========================
+     FETCH CLIENT + PAYMENTS
+  ========================= */
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchData = async () => {
+      setLoading(true);
+
+      /* ---- Fetch client ---- */
+      const { data: clientData, error: clientError } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (clientError || !clientData) {
+        toast.error("Client not found");
+        setLoading(false);
+        return;
+      }
+
+      setClient(clientData);
+
+      /* ---- Fetch payments ---- */
+      const { data: paymentData, error: paymentError } = await supabase
+        .from("payments")
+        .select("id, amount, paid_on, client_id")
+        .eq("client_id", id)
+        .order("paid_on", { ascending: false });
+
+      if (paymentError) {
+        toast.error("Failed to load payments");
+      } else {
+        const formatted: UIPayment[] =
+          paymentData?.map((p) => ({
+            id: p.id,
+            clientId: p.client_id,
+            clientName: clientData.name,
+            amount: p.amount,
+            paymentDate: p.paid_on,
+            monthFor: p.paid_on.slice(0, 7), // YYYY-MM
+          })) || [];
+
+        setPayments(formatted);
+      }
+
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [id]);
+
+  /* =========================
+     LOADING / NOT FOUND
+  ========================= */
+
+  if (loading) {
+    return (
+      <div className="page-container text-center py-20 text-muted-foreground">
+        Loading client…
+      </div>
+    );
+  }
 
   if (!client) {
     return (
@@ -29,17 +121,25 @@ export default function ClientDetail() {
     );
   }
 
-  const paymentsByMonth = clientPayments.reduce((acc, payment) => {
-    const month = payment.monthFor;
-    if (!acc[month]) acc[month] = [];
-    acc[month].push(payment);
+  /* =========================
+     DERIVED DATA
+  ========================= */
+
+  const paymentsByMonth = payments.reduce((acc, payment) => {
+    if (!acc[payment.monthFor]) acc[payment.monthFor] = [];
+    acc[payment.monthFor].push(payment);
     return acc;
-  }, {} as Record<string, typeof clientPayments>);
+  }, {} as Record<string, UIPayment[]>);
 
   const sortedMonths = Object.keys(paymentsByMonth).sort().reverse();
 
-  const totalPaid = clientPayments.reduce((sum, p) => sum + p.amount, 0);
-  const totalCommission = totalPaid * (client.commissionPercentage / 100);
+  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+  const totalCommission =
+    (totalPaid * client.commission_percentage) / 100;
+
+  /* =========================
+     UI
+  ========================= */
 
   return (
     <div className="page-container section-spacing">
@@ -70,10 +170,13 @@ export default function ClientDetail() {
             </div>
           </div>
         </div>
+
         <div className="flex items-center gap-3">
           <span
             className={
-              client.status === "active" ? "status-active" : "status-inactive"
+              client.status === "active"
+                ? "status-active"
+                : "status-inactive"
             }
           >
             {client.status}
@@ -96,21 +199,29 @@ export default function ClientDetail() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Default Fee</p>
-              <p className="text-xl font-bold">{formatCurrency(client.defaultFee)}</p>
+              <p className="text-xl font-bold">
+                {formatCurrency(client.default_fee)}
+              </p>
             </div>
           </div>
         </Card>
+
         <Card variant="stat">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-xl bg-accent/10">
               <Percent className="h-5 w-5 text-accent" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Commission Rate</p>
-              <p className="text-xl font-bold">{client.commissionPercentage}%</p>
+              <p className="text-sm text-muted-foreground">
+                Commission Rate
+              </p>
+              <p className="text-xl font-bold">
+                {client.commission_percentage}%
+              </p>
             </div>
           </div>
         </Card>
+
         <Card variant="stat">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-xl bg-success/10">
@@ -118,7 +229,9 @@ export default function ClientDetail() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Earned</p>
-              <p className="text-xl font-bold">{formatCurrency(totalCommission)}</p>
+              <p className="text-xl font-bold">
+                {formatCurrency(totalCommission)}
+              </p>
             </div>
           </div>
         </Card>

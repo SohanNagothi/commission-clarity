@@ -1,23 +1,105 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ClientCard } from "@/components/ClientCard";
 import { AddClientDialog } from "@/components/AddClientDialog";
-import { clients } from "@/data/mockData";
+import { supabase } from "@/lib/supabase";
+
+/* ---------------- TYPES ---------------- */
+
+export type Client = {
+  id: string;
+  name: string;
+  phone: string;
+  default_fee: number;
+  commission_rate: number;
+  status: "active" | "inactive";
+  created_at: string;
+};
+
+/* ---------------- COMPONENT ---------------- */
 
 export default function Clients() {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [statusFilter, setStatusFilter] =
+    useState<"all" | "active" | "inactive">("all");
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  /* ---------------- FETCH ---------------- */
+
+  const fetchClients = async () => {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("clients")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setClients(data);
+    }
+
+    setLoading(false);
+  };
+
+  /* ---------------- ACTIONS ---------------- */
+
+  const toggleStatus = async (client: Client) => {
+    const newStatus = client.status === "active" ? "inactive" : "active";
+
+    const { error } = await supabase
+      .from("clients")
+      .update({ status: newStatus })
+      .eq("id", client.id);
+
+    if (!error) {
+      setClients((prev) =>
+        prev.map((c) =>
+          c.id === client.id ? { ...c, status: newStatus } : c
+        )
+      );
+    }
+  };
+
+  const deleteClient = async (id: string) => {
+    const confirmed = confirm("Are you sure you want to delete this client?");
+    if (!confirmed) return;
+
+    const { error } = await supabase.from("clients").delete().eq("id", id);
+
+    if (!error) {
+      setClients((prev) => prev.filter((c) => c.id !== id));
+    }
+  };
+
+  /* ---------------- FILTER ---------------- */
 
   const filteredClients = clients.filter((client) => {
     const matchesSearch =
       client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchQuery.toLowerCase());
+      client.phone.includes(searchQuery);
+
     const matchesStatus =
       statusFilter === "all" || client.status === statusFilter;
+
     return matchesSearch && matchesStatus;
   });
+
+  /* ---------------- UI ---------------- */
+
+  if (loading) {
+    return (
+      <div className="page-container py-20 text-center text-muted-foreground">
+        Loading clients...
+      </div>
+    );
+  }
 
   return (
     <div className="page-container section-spacing">
@@ -29,10 +111,11 @@ export default function Clients() {
         >
           <h1 className="text-headline">Clients</h1>
           <p className="text-muted-foreground">
-            Manage your clients and their commission rates
+            Manage clients, fees and commission
           </p>
         </motion.div>
-        <AddClientDialog />
+
+        <AddClientDialog onClientAdded={fetchClients} />
       </div>
 
       {/* Filters */}
@@ -45,42 +128,43 @@ export default function Clients() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search clients..."
+            placeholder="Search by name or phone..."
             className="pl-9"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
-          {(["all", "active", "inactive"] as const).map((status) => (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                statusFilter === status
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-              }`}
-            >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </button>
-          ))}
-        </div>
+
+        {/* Status Filter */}
+        <select
+          className="border rounded-md px-3 py-2 text-sm"
+          value={statusFilter}
+          onChange={(e) =>
+            setStatusFilter(e.target.value as "all" | "active" | "inactive")
+          }
+        >
+          <option value="all">All</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
       </motion.div>
 
       {/* Client List */}
       <div className="space-y-3">
         {filteredClients.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12 text-muted-foreground"
-          >
-            No clients found matching your filters.
-          </motion.div>
+          <div className="text-center py-12 text-muted-foreground">
+            No clients found.
+          </div>
         ) : (
           filteredClients.map((client, index) => (
-            <ClientCard key={client.id} client={client} index={index} />
+            <ClientCard
+              key={client.id}
+              client={client}
+              index={index}
+              onToggleStatus={() => toggleStatus(client)}
+              onDelete={() => deleteClient(client.id)}
+              onUpdated={fetchClients}
+            />
           ))
         )}
       </div>
