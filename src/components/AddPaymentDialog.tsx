@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,45 +18,109 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
-import { clients } from "@/data/mockData";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+
+/* ---------- Types ---------- */
+
+interface Client {
+  id: string;
+  name: string;
+  status: "active" | "inactive";
+}
 
 interface AddPaymentDialogProps {
   preselectedClientId?: string;
 }
 
+/* ---------- Component ---------- */
+
 export function AddPaymentDialog({ preselectedClientId }: AddPaymentDialogProps) {
   const [open, setOpen] = useState(false);
+  const [clients, setClients] = useState<Client[]>([]);
+
   const [clientId, setClientId] = useState(preselectedClientId || "");
   const [monthFor, setMonthFor] = useState("");
   const [amount, setAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  /* ---------- Fetch Active Clients ---------- */
+  useEffect(() => {
+    if (!open || preselectedClientId) return;
+
+    const fetchClients = async () => {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, name, status")
+        .eq("status", "active")
+        .order("name");
+
+      if (error) {
+        console.error(error);
+        toast.error("Failed to load clients");
+        return;
+      }
+
+      setClients(data || []);
+    };
+
+    fetchClients();
+  }, [open, preselectedClientId]);
+
+  /* ---------- Submit ---------- */
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!clientId) {
+      toast.error("Please select a client");
+      return;
+    }
+
+    setLoading(true);
+
+    const { error } = await supabase.from("payments").insert({
+      client_id: clientId,
+      month_for: `${monthFor}-01`, // convert YYYY-MM → YYYY-MM-01
+      amount: Number(amount),
+      payment_date: paymentDate,
+      notes: notes.trim() || null,
+    });
+
+    if (error) {
+      console.error(error);
+      toast.error("Failed to add payment");
+      setLoading(false);
+      return;
+    }
+
     toast.success("Payment added successfully");
     setOpen(false);
+
     if (!preselectedClientId) setClientId("");
     setMonthFor("");
     setAmount("");
     setPaymentDate("");
     setNotes("");
+    setLoading(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4 mr-1" />
           Add Payment
         </Button>
       </DialogTrigger>
+
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add New Payment</DialogTitle>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          {/* Client */}
           {!preselectedClientId && (
             <div className="space-y-2">
               <Label htmlFor="client">Client</Label>
@@ -65,18 +129,17 @@ export function AddPaymentDialog({ preselectedClientId }: AddPaymentDialogProps)
                   <SelectValue placeholder="Select client" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients
-                    .filter((c) => c.status === "active")
-                    .map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           )}
 
+          {/* Month */}
           <div className="space-y-2">
             <Label htmlFor="monthFor">Month Being Paid For</Label>
             <Input
@@ -88,18 +151,20 @@ export function AddPaymentDialog({ preselectedClientId }: AddPaymentDialogProps)
             />
           </div>
 
+          {/* Amount */}
           <div className="space-y-2">
             <Label htmlFor="amount">Amount (₹)</Label>
             <Input
               id="amount"
               type="number"
-              placeholder="5000"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
+              min="1"
             />
           </div>
 
+          {/* Payment Date */}
           <div className="space-y-2">
             <Label htmlFor="paymentDate">Payment Date</Label>
             <Input
@@ -111,28 +176,30 @@ export function AddPaymentDialog({ preselectedClientId }: AddPaymentDialogProps)
             />
           </div>
 
+          {/* Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">Notes (Optional)</Label>
             <Textarea
               id="notes"
-              placeholder="Any additional notes..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
             />
           </div>
 
+          {/* Actions */}
           <div className="flex gap-3 pt-2">
             <Button
               type="button"
               variant="outline"
               className="flex-1"
               onClick={() => setOpen(false)}
+              disabled={loading}
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              Add Payment
+            <Button type="submit" className="flex-1" disabled={loading}>
+              {loading ? "Saving..." : "Add Payment"}
             </Button>
           </div>
         </form>
