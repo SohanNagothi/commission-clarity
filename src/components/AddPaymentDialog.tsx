@@ -35,7 +35,9 @@ interface AddPaymentDialogProps {
 
 /* ---------- Component ---------- */
 
-export function AddPaymentDialog({ preselectedClientId }: AddPaymentDialogProps) {
+export function AddPaymentDialog({
+  preselectedClientId,
+}: AddPaymentDialogProps) {
   const [open, setOpen] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
 
@@ -72,6 +74,7 @@ export function AddPaymentDialog({ preselectedClientId }: AddPaymentDialogProps)
   /* ---------- Submit ---------- */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!clientId) {
       toast.error("Please select a client");
       return;
@@ -79,30 +82,45 @@ export function AddPaymentDialog({ preselectedClientId }: AddPaymentDialogProps)
 
     setLoading(true);
 
-    const { error } = await supabase.from("payments").insert({
-      client_id: clientId,
-      month_for: `${monthFor}-01`, // convert YYYY-MM → YYYY-MM-01
-      amount: Number(amount),
-      payment_date: paymentDate,
-      notes: notes.trim() || null,
-    });
+    try {
+      /* ---- Get logged-in user ---- */
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
 
-    if (error) {
+      if (authError || !user) {
+        toast.error("You must be logged in to add payments");
+        setLoading(false);
+        return;
+      }
+
+      /* ---- Insert payment ---- */
+      const { error } = await supabase.from("payments").insert({
+        user_id: user.id, // 🔒 critical
+        client_id: clientId,
+        month_for: `${monthFor}-01`, // YYYY-MM → YYYY-MM-01
+        amount: Number(amount),
+        payment_date: paymentDate,
+        notes: notes.trim() || null,
+      });
+
+      if (error) throw error;
+
+      toast.success("Payment added successfully");
+      setOpen(false);
+
+      if (!preselectedClientId) setClientId("");
+      setMonthFor("");
+      setAmount("");
+      setPaymentDate("");
+      setNotes("");
+    } catch (error) {
       console.error(error);
       toast.error("Failed to add payment");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    toast.success("Payment added successfully");
-    setOpen(false);
-
-    if (!preselectedClientId) setClientId("");
-    setMonthFor("");
-    setAmount("");
-    setPaymentDate("");
-    setNotes("");
-    setLoading(false);
   };
 
   return (
