@@ -1,73 +1,155 @@
-# Welcome to your Lovable project
+# 💸 Feezy
 
-## Project info
+**Feezy** is a modern commission and payment tracking platform built to help individuals and small businesses **manage commissions, settlements, and pending balances with complete clarity**.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+🔗 **Live Demo**
+👉 [https://commission-clarity.vercel.app/](https://commission-clarity.vercel.app/)
 
-## How can I edit this code?
+## ✨ What is Feezy?
 
-There are several ways of editing your application.
+Managing commissions manually often leads to:
 
-**Use Lovable**
+* Confusion between received vs pending money
+* Incorrect monthly calculations
+* No visibility into historical dues
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+**Feezy fixes this by providing:**
 
-Changes made via Lovable will be committed automatically to this repo.
+* Clear separation between **payments** and **settlements**
+* Accurate commission calculations
+* Real-time pending balance tracking
+* Secure, user-specific data access
 
-**Use your preferred IDE**
+## 🚀 Core Features
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 📊 Dashboard
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+* **Total Commission** (all-time)
+* **Total Received** settlements
+* **Pending Amount** (auto-calculated)
+* **This Month’s Earnings** (based on actual payment date)
 
-Follow these steps:
+### 💰 Payments
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+* Add payments with:
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+  * Client
+  * Amount
+  * Month paid for
+  * Actual **payment date**
+* Support for **previous pending / opening balance**
+* Each payment is tied to the logged-in user
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 🤝 Settlements
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+* Record received settlements
+* Automatically reduces pending balance
+* Cleanly separated from payments for accuracy
+
+### 🔐 Authentication & Data Security
+
+* Supabase authentication
+* Row Level Security (RLS)
+* Users can only view & modify **their own data**
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+* **React + TypeScript**
+* **Vite**
+* **Tailwind CSS**
+* **Framer Motion**
+* **shadcn/ui**
+* **Lucide Icons**
+
+### Backend
+
+* **Supabase**
+
+  * PostgreSQL
+  * Auth
+  * RLS Policies
+  * REST APIs
+
+### Hosting
+
+* **Vercel** (Frontend)
+* **Supabase Free Tier** (Backend)
+
+## 🧠 Architecture Highlights
+
+* **Payment Date ≠ Created At**
+  Analytics use `payment_date` for correct monthly insights.
+
+* **Opening Balance Support**
+  Previous pending commissions can be added without affecting analytics.
+
+* **User-Centric Data Model**
+  Every record is associated with a `user_id`.
+
+## 🗄️ Database Schema (Simplified)
+
+### Payments
+
+* `client_id`
+* `month_for`
+* `amount`
+* `payment_date`
+* `user_id`
+* `is_opening_balance`
+* `status`
+
+### Settlements
+
+* `amount`
+* `settlement_date`
+* `user_id`
+
+All tables are protected with **Row Level Security**.
+
+## 🧪 Local Development
+
+```bash
+git clone https://github.com/your-username/feezy.git
+cd feezy
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Create a `.env` file:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-**Use GitHub Codespaces**
+## 🌱 Planned Enhancements
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+* Client-wise analytics
+* Export reports (PDF / Excel)
+* Advanced filters & insights
+* Settlement-to-payment mapping
+* Multi-currency support
+* Admin dashboards
 
-## What technologies are used for this project?
+## 👨‍💻 Author
 
-This project is built with:
+**Sohan**
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Feezy was built as a **real-world financial tracking system**, focusing on:
 
-## How can I deploy this project?
+* Proper data modeling
+* Secure multi-user architecture
+* Accurate financial calculations
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## ⭐ Final Thoughts
 
-## Can I connect a custom domain to my Lovable project?
+Feezy is intentionally:
 
-Yes, you can!
+* **Simple**
+* **Accurate**
+* **Scalable**
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+It’s designed to solve a real problem, not to overcomplicate it.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
