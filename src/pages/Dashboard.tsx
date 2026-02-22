@@ -56,6 +56,7 @@ export default function Dashboard() {
             month_for,
             client_id,
             is_opening_balance,
+            status,
             clients (
               name,
               commission_rate
@@ -132,6 +133,7 @@ export default function Dashboard() {
               amount: p.amount,
               monthFor: p.month_for,
               paymentDate: p.payment_date,
+              status: p.status || "paid",
             }))
             .sort(
               (a, b) =>
@@ -156,6 +158,37 @@ export default function Dashboard() {
     if (profile?.org_invite_code) {
       navigator.clipboard.writeText(profile.org_invite_code);
       toast.success("Teacher Invite Code copied!");
+    }
+  };
+
+  const saveOpeningBalance = async () => {
+    if (!profile?.id || !openingAmount) {
+      toast.error("Please enter an amount");
+      return;
+    }
+
+    setSavingOpening(true);
+    try {
+      const { error } = await supabase.from("payments").insert({
+        user_id: profile.id,
+        amount: Number(openingAmount),
+        is_opening_balance: true,
+        payment_date: new Date().toISOString().split('T')[0],
+        status: 'paid',
+        month_for: new Date().toISOString().split('T')[0],
+      });
+
+      if (error) throw error;
+
+      toast.success("Opening balance added successfully!");
+      setOpenDialog(false);
+      // Simplest way to refresh all stats
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save opening balance");
+    } finally {
+      setSavingOpening(false);
     }
   };
 

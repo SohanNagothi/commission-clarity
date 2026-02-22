@@ -55,6 +55,7 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS invite_code TEXT UNIQUE;
 -- 6. Payment status (paid/pending)
 -- ========================================
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'paid';
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS is_opening_balance BOOLEAN DEFAULT FALSE;
 ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_status_check;
 ALTER TABLE payments ADD CONSTRAINT payments_status_check
   CHECK (status IN ('paid', 'pending'));
