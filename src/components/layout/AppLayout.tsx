@@ -1,125 +1,170 @@
 import { useState } from "react";
-import { Link, useLocation, Outlet } from "react-router-dom";
+import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
+import { useAuth, UserRole } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   Users,
-  CreditCard,
-  Landmark,
+  IndianRupee,
+  HandCoins,
   BarChart3,
+  Settings,
+  User as UserIcon,
+  LogOut,
   Menu,
   X,
-  LogOut,
-  Settings,
-  User,
-  ChevronDown,
+  Plus,
+  Bell,
+  Search,
+  Building2,
+  GraduationCap
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { Footer } from "@/components/Footer";
+import { NotificationBell } from "./NotificationBell";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Footer } from "@/components/Footer";
 
-const navItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Clients", href: "/clients", icon: Users },
-  { name: "Payments", href: "/payments", icon: CreditCard },
-  { name: "Settlements", href: "/settlements", icon: Landmark },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
-];
+/* ---------- Nav Config ---------- */
+
+const NAV_CONFIG: Record<UserRole, any[]> = {
+  teacher: [
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Clients", href: "/clients", icon: Users },
+    { name: "Payments", href: "/payments", icon: IndianRupee },
+    { name: "Settlements", href: "/settlements", icon: HandCoins },
+    { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  ],
+  owner: [
+    { name: "Overview", href: "/owner/dashboard", icon: LayoutDashboard },
+    { name: "Teachers", href: "/owner/teachers", icon: GraduationCap },
+    { name: "Settlements", href: "/owner/settlements", icon: HandCoins },
+    { name: "Analytics", href: "/analytics", icon: BarChart3 }, // reused for now
+  ],
+  client: [
+    { name: "My Fees", href: "/student/dashboard", icon: LayoutDashboard },
+    { name: "Payment History", href: "/student/fees", icon: IndianRupee },
+  ],
+};
+
+/* ---------- Component ---------- */
 
 export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { profile, role, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/", { replace: true });
+  };
+
+  const navItems = role ? NAV_CONFIG[role] : [];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Desktop Header */}
-      <header className="hidden lg:block fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-b">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-10">
-              <Link to="/dashboard">
-                <Logo size="md" />
-              </Link>
-              
-              <nav className="flex items-center gap-1">
-                {navItems.map((item) => {
-                  const isActive = location.pathname === item.href;
-                  return (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all",
-                        isActive
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                      )}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
+      {/* Header */}
+      <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-md">
+        <div className="container px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <Link to="/dashboard">
+              <Logo size="sm" />
+            </Link>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-1">
+              {navItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${location.pathname === item.href
+                    ? "bg-primary text-primary-foreground shadow-md"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <item.icon className="h-4 w-4" />
+                    {item.name}
+                  </div>
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+
+            <NotificationBell />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-sm font-semibold">
-                    U
+                <Button variant="ghost" size="icon" className="rounded-full overflow-hidden ml-1">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-sm font-bold">
+                    {profile?.full_name?.charAt(0).toUpperCase() || "U"}
                   </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-56 mt-2 rounded-xl">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{profile?.full_name}</p>
+                    <p className="text-xs leading-none text-muted-foreground uppercase tracking-wider font-bold">
+                      {role || "User"}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/account" className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    My Account
+                  <Link to="/account" className="flex items-center gap-2 cursor-pointer">
+                    <UserIcon className="h-4 w-4" />
+                    Account
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/settings" className="flex items-center gap-2">
+                  <Link to="/settings" className="flex items-center gap-2 cursor-pointer">
                     <Settings className="h-4 w-4" />
                     Settings
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/" className="flex items-center gap-2 text-destructive">
-                    <LogOut className="h-4 w-4" />
-                    Sign Out
-                  </Link>
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="flex items-center gap-2 text-destructive cursor-pointer"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Mobile Menu Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden ml-1"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-b h-16 flex items-center justify-between px-4">
-        <Link to="/dashboard">
-          <Logo size="sm" />
-        </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
-      </header>
+      {/* Main Content */}
+      <main className="flex-1 container px-4 sm:px-6 py-8">
+        <Outlet />
+      </main>
+
+      <Footer />
 
       {/* Mobile Menu Overlay */}
       <AnimatePresence>
@@ -129,46 +174,55 @@ export function AppLayout() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="lg:hidden fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm"
               onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm md:hidden"
             />
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="lg:hidden fixed top-16 left-0 right-0 z-50 bg-card border-b shadow-lg p-4"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 right-0 z-50 w-full max-w-[300px] bg-background border-l shadow-xl p-6 md:hidden"
             >
-              <nav className="space-y-1">
-                {navItems.map((item) => {
-                  const isActive = location.pathname === item.href;
-                  return (
+              <div className="flex items-center justify-between mb-8">
+                <Logo size="sm" />
+                <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}>
+                  <X className="h-6 w-6" />
+                </Button>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <div className="mb-4 px-4 py-3 rounded-xl bg-muted/50">
+                  <p className="text-sm font-semibold">{profile?.full_name}</p>
+                  <p className="text-xs text-muted-foreground uppercase font-bold">{role}</p>
+                </div>
+
+                <nav className="space-y-1">
+                  {navItems.map((item) => (
                     <Link
                       key={item.name}
                       to={item.href}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all",
-                        isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-muted"
-                      )}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${location.pathname === item.href
+                        ? "bg-primary text-primary-foreground shadow-lg"
+                        : "text-muted-foreground hover:bg-muted"
+                        }`}
                     >
                       <item.icon className="h-5 w-5" />
                       {item.name}
                     </Link>
-                  );
-                })}
-              </nav>
+                  ))}
+                </nav>
 
-              <div className="mt-4 pt-4 border-t space-y-1">
+                <div className="my-4 h-px bg-border" />
+
                 <Link
                   to="/account"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-muted-foreground hover:bg-muted transition-all"
                 >
-                  <User className="h-5 w-5" />
-                  My Account
+                  <UserIcon className="h-5 w-5" />
+                  Account
                 </Link>
                 <Link
                   to="/settings"
@@ -178,27 +232,21 @@ export function AppLayout() {
                   <Settings className="h-5 w-5" />
                   Settings
                 </Link>
-                <Link
-                  to="/"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-destructive hover:bg-destructive/10 transition-all"
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleSignOut();
+                  }}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-destructive hover:bg-destructive/10 transition-all w-full text-left"
                 >
                   <LogOut className="h-5 w-5" />
                   Sign Out
-                </Link>
+                </button>
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
-
-      {/* Main Content */}
-      <main className="pt-16 flex-1">
-        <Outlet />
-      </main>
-
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }

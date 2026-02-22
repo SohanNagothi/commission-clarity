@@ -67,9 +67,9 @@ export default function ClientDetail() {
       /* ---- Fetch payments ---- */
       const { data: paymentData, error: paymentError } = await supabase
         .from("payments")
-        .select("id, amount, paid_on, client_id")
+        .select("id, amount, payment_date, client_id")
         .eq("client_id", id)
-        .order("paid_on", { ascending: false });
+        .order("payment_date", { ascending: false });
 
       if (paymentError) {
         toast.error("Failed to load payments");
@@ -80,8 +80,8 @@ export default function ClientDetail() {
             clientId: p.client_id,
             clientName: clientData.name,
             amount: p.amount,
-            paymentDate: p.paid_on,
-            monthFor: p.paid_on.slice(0, 7), // YYYY-MM
+            paymentDate: p.payment_date,
+            monthFor: p.payment_date.slice(0, 7), // YYYY-MM
           })) || [];
 
         setPayments(formatted);

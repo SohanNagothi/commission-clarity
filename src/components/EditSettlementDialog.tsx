@@ -11,46 +11,47 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Pencil } from "lucide-react";
-import type { Settlement } from "@/data/mockData";
+import type { Settlement } from "@/components/SettlementRow";
 import { toast } from "sonner";
 
 import { supabase } from "@/lib/supabase";
 
 interface EditSettlementDialogProps {
   settlement: Settlement;
+  onUpdate?: (id?: string) => void;
 }
 
-export function EditSettlementDialog({ settlement }: EditSettlementDialogProps) {
+export function EditSettlementDialog({ settlement, onUpdate }: EditSettlementDialogProps) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(settlement.amount.toString());
   const [date, setDate] = useState(settlement.date);
   const [notes, setNotes] = useState(settlement.notes || "");
 
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const { error } = await supabase
-    .from("settlements")
-    .update({
-      amount: parseFloat(amount),
-      settlement_date: date,
-      notes: notes || null,
-    })
-    .eq("id", settlement.id);
+    const { error } = await supabase
+      .from("settlements")
+      .update({
+        amount: parseFloat(amount),
+        settlement_date: date,
+        notes: notes || null,
+      })
+      .eq("id", settlement.id);
 
-  if (error) {
-    toast.error("Failed to update settlement");
-    console.error(error);
-    return;
-  }
+    if (error) {
+      toast.error("Failed to update settlement");
+      console.error(error);
+      return;
+    }
 
-  toast.success("Settlement updated successfully");
-  setOpen(false);
+    toast.success("Settlement updated successfully");
+    setOpen(false);
 
-  // Notify parent to refresh data
-  if (onUpdate) onUpdate();
-};
+    // Notify parent to refresh data
+    if (onUpdate) onUpdate();
+  };
 
 
   return (

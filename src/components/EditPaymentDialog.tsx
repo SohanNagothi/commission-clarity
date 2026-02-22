@@ -8,19 +8,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { Payment } from "./PaymentRow";
 
 /* ---------- Types ---------- */
-
-interface Payment {
-  id: string;
-  monthFor: string; // YYYY-MM-DD from DB
-  amount: number;
-  paymentDate: string; // YYYY-MM-DD
-  notes?: string | null;
-}
 
 interface EditPaymentDialogProps {
   open: boolean;
@@ -40,6 +40,7 @@ export function EditPaymentDialog({
   const [monthFor, setMonthFor] = useState("");
   const [amount, setAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState("");
+  const [status, setStatus] = useState<"paid" | "pending">("paid");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -50,6 +51,7 @@ export function EditPaymentDialog({
     setMonthFor(payment.monthFor.slice(0, 7)); // ✅ YYYY-MM
     setAmount(String(payment.amount));
     setPaymentDate(payment.paymentDate);
+    setStatus(payment.status || "paid");
     setNotes(payment.notes || "");
   }, [payment]);
 
@@ -58,7 +60,7 @@ export function EditPaymentDialog({
     e.preventDefault();
     setLoading(true);
 
-    const normalizedMonthFor = `${monthFor}-01`; // ✅ FIX
+    const normalizedMonthFor = `${monthFor}-01`;
 
     const { error } = await supabase
       .from("payments")
@@ -66,6 +68,7 @@ export function EditPaymentDialog({
         month_for: normalizedMonthFor,
         amount: Number(amount),
         payment_date: paymentDate,
+        status: status,
         notes: notes || null,
       })
       .eq("id", payment.id);
@@ -73,7 +76,7 @@ export function EditPaymentDialog({
     if (error) {
       console.error("Update payment error:", error);
       toast.error(error.message);
-      setLoading(false); // ✅ important
+      setLoading(false);
       return;
     }
 
@@ -88,46 +91,64 @@ export function EditPaymentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Payment</DialogTitle>
+          <DialogTitle>Edit Payment Record</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label>Month For</Label>
-            <Input
-              type="month"
-              value={monthFor}
-              onChange={(e) => setMonthFor(e.target.value)}
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Month Paid For</Label>
+              <Input
+                type="month"
+                value={monthFor}
+                onChange={(e) => setMonthFor(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={status} onValueChange={(val: any) => setStatus(val)} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Amount (₹)</Label>
+              <Input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Payment Date</Label>
+              <Input
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Amount (₹)</Label>
-            <Input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Payment Date</Label>
-            <Input
-              type="date"
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Notes</Label>
+            <Label>Notes (Optional)</Label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
+              placeholder="Add any additional details..."
             />
           </div>
 

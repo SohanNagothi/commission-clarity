@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, Wallet, Clock, Calendar, Plus } from "lucide-react";
+import { TrendingUp, Wallet, Clock, Calendar, Plus, Copy } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentCard } from "@/components/PaymentRow";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ import { toast } from "sonner";
 import type { Payment } from "@/components/PaymentRow";
 
 export default function Dashboard() {
+  const { profile, loading: authLoading } = useAuth();
   const [totalCommission, setTotalCommission] = useState(0);
   const [totalReceived, setTotalReceived] = useState(0);
   const [pending, setPending] = useState(0);
@@ -26,7 +28,6 @@ export default function Dashboard() {
   const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [userId, setUserId] = useState<string | null>(null);
   const [openingExists, setOpeningExists] = useState(false);
 
   /* ---------- Opening Balance Dialog ---------- */
@@ -35,16 +36,13 @@ export default function Dashboard() {
   const [savingOpening, setSavingOpening] = useState(false);
 
   useEffect(() => {
+    if (!profile?.id) return;
+
     const fetchDashboard = async () => {
       setLoading(true);
 
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (!user) throw new Error("Not authenticated");
-        setUserId(user.id);
+        const userId = profile.id;
 
         /* =========================
            Payments
@@ -63,7 +61,7 @@ export default function Dashboard() {
               commission_rate
             )
           `)
-          .eq("user_id", user.id);
+          .eq("user_id", userId);
 
         /* =========================
            Settlements
@@ -71,7 +69,7 @@ export default function Dashboard() {
         const { data: settlements } = await supabase
           .from("settlements")
           .select("amount")
-          .eq("user_id", user.id);
+          .eq("user_id", userId);
 
         const hasOpening =
           payments?.some((p: any) => p.is_opening_balance) ?? false;
@@ -152,51 +150,49 @@ export default function Dashboard() {
     };
 
     fetchDashboard();
-  }, []);
+  }, [profile?.id]);
 
-  /* ---------- Add Opening Balance ---------- */
-  const saveOpeningBalance = async () => {
-    if (!userId || !openingAmount) return;
-
-    setSavingOpening(true);
-
-    const { error } = await supabase.from("payments").insert({
-      user_id: userId,
-      amount: Number(openingAmount),
-      payment_date: new Date().toISOString().split("T")[0],
-      is_opening_balance: true,
-      notes: "Opening balance / previous pending",
-    });
-
-    if (error) {
-      toast.error("Failed to save opening balance");
-      setSavingOpening(false);
-      return;
+  const copyInviteCode = () => {
+    if (profile?.org_invite_code) {
+      navigator.clipboard.writeText(profile.org_invite_code);
+      toast.success("Teacher Invite Code copied!");
     }
-
-    toast.success("Previous pending added");
-    setOpenDialog(false);
-    window.location.reload(); // simplest & safe refresh
   };
+
+  if (authLoading) return null;
 
   return (
     <div className="page-container section-spacing">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-headline">Dashboard</h1>
+            <h1 className="text-display mb-1">Teacher Portal</h1>
             <p className="text-muted-foreground">
-              Your commission overview at a glance
+              Welcome back, {profile?.full_name?.split(' ')[0] || 'Teacher'}
             </p>
           </div>
 
-          {!openingExists && (
-            <Button onClick={() => setOpenDialog(true)}>
-              <Plus className="h-4 w-4 mr-1" />
-              Add Previous Pending
-            </Button>
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-3 p-3 bg-accent/5 border border-accent/20 rounded-xl">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-accent/70">My Invite Code</p>
+                <p className="text-lg font-mono font-bold tracking-widest text-accent">
+                  {profile?.org_invite_code || "-------"}
+                </p>
+              </div>
+              <Button onClick={copyInviteCode} variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent/10 hover:text-accent">
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {!openingExists && (
+              <Button onClick={() => setOpenDialog(true)} variant="outline">
+                <Plus className="h-4 w-4 mr-1" />
+                Add Previous Pending
+              </Button>
+            )}
+          </div>
         </div>
       </motion.div>
 

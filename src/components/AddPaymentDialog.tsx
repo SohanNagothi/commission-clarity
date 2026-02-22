@@ -46,6 +46,7 @@ export function AddPaymentDialog({
   const [amount, setAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [status, setStatus] = useState<"paid" | "pending">("paid");
   const [loading, setLoading] = useState(false);
 
   /* ---------- Fetch Active Clients ---------- */
@@ -102,6 +103,7 @@ export function AddPaymentDialog({
         month_for: `${monthFor}-01`, // YYYY-MM → YYYY-MM-01
         amount: Number(amount),
         payment_date: paymentDate,
+        status: status,
         notes: notes.trim() || null,
       });
 
@@ -114,6 +116,7 @@ export function AddPaymentDialog({
       setMonthFor("");
       setAmount("");
       setPaymentDate("");
+      setStatus("paid");
       setNotes("");
     } catch (error) {
       console.error(error);
@@ -157,41 +160,59 @@ export function AddPaymentDialog({
             </div>
           )}
 
-          {/* Month */}
-          <div className="space-y-2">
-            <Label htmlFor="monthFor">Month Being Paid For</Label>
-            <Input
-              id="monthFor"
-              type="month"
-              value={monthFor}
-              onChange={(e) => setMonthFor(e.target.value)}
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            {/* Month */}
+            <div className="space-y-2">
+              <Label htmlFor="monthFor">Month Paid For</Label>
+              <Input
+                id="monthFor"
+                type="month"
+                value={monthFor}
+                onChange={(e) => setMonthFor(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Status */}
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={status} onValueChange={(val: any) => setStatus(val)} required>
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Amount */}
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount (₹)</Label>
-            <Input
-              id="amount"
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-              min="1"
-            />
-          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Amount */}
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount (₹)</Label>
+              <Input
+                id="amount"
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                required
+                min="1"
+              />
+            </div>
 
-          {/* Payment Date */}
-          <div className="space-y-2">
-            <Label htmlFor="paymentDate">Payment Date</Label>
-            <Input
-              id="paymentDate"
-              type="date"
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-              required
-            />
+            {/* Payment Date */}
+            <div className="space-y-2">
+              <Label htmlFor="paymentDate">Payment Date</Label>
+              <Input
+                id="paymentDate"
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           {/* Notes */}
@@ -201,7 +222,7 @@ export function AddPaymentDialog({
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              rows={3}
+              rows={2}
             />
           </div>
 

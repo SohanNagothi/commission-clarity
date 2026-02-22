@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, Filter, ListFilter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AddPaymentDialog } from "@/components/AddPaymentDialog";
-import { PaymentRow, PaymentCard } from "@/components/PaymentRow";
+import { PaymentRow, PaymentCard, Payment } from "@/components/PaymentRow";
 import { formatCurrency, formatMonthYear } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -23,16 +23,6 @@ interface Client {
   name: string;
 }
 
-interface Payment {
-  id: string;
-  clientId: string;
-  clientName: string;
-  monthFor: string;
-  amount: number;
-  paymentDate: string;
-  notes?: string | null;
-}
-
 /* ---------- Component ---------- */
 
 export default function Payments() {
@@ -42,57 +32,60 @@ export default function Payments() {
 
   const [clientFilter, setClientFilter] = useState("all");
   const [monthFilter, setMonthFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   /* ---------- Fetch Data ---------- */
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+  const fetchData = async () => {
+    setLoading(true);
 
-      const [{ data: paymentsData, error: paymentsError }, { data: clientsData, error: clientsError }] =
-        await Promise.all([
-          supabase
-            .from("payments")
-            .select(
-              `
-              id,
-              client_id,
-              month_for,
-              amount,
-              payment_date,
-              notes,
-              clients ( name )
+    const [{ data: paymentsData, error: paymentsError }, { data: clientsData, error: clientsError }] =
+      await Promise.all([
+        supabase
+          .from("payments")
+          .select(
             `
-            )
-            .order("payment_date", { ascending: false }),
+            id,
+            client_id,
+            month_for,
+            amount,
+            payment_date,
+            status,
+            notes,
+            clients ( name )
+          `
+          )
+          .order("payment_date", { ascending: false }),
 
-          supabase.from("clients").select("id, name").order("name"),
-        ]);
+        supabase.from("clients").select("id, name").order("name"),
+      ]);
 
-      if (paymentsError || clientsError) {
-        console.error(paymentsError || clientsError);
-        toast.error("Failed to load payments");
-        setLoading(false);
-        return;
-      }
-
-      setPayments(
-        (paymentsData || []).map((p: any) => ({
-          id: p.id,
-          clientId: p.client_id,
-          clientName: p.clients?.name ?? "Unknown",
-          monthFor: p.month_for,
-          amount: p.amount,
-          paymentDate: p.payment_date,
-          notes: p.notes,
-        }))
-      );
-
-      setClients(clientsData || []);
+    if (paymentsError || clientsError) {
+      console.error(paymentsError || clientsError);
+      toast.error("Failed to load payments");
       setLoading(false);
-    };
+      return;
+    }
 
+    setPayments(
+      (paymentsData || []).map((p: any) => ({
+        id: p.id,
+        clientId: p.client_id,
+        clientName: p.clients?.name ?? "Unknown",
+        monthFor: p.month_for,
+        amount: p.amount,
+        paymentDate: p.payment_date,
+        status: p.status || "paid",
+        notes: p.notes,
+      }))
+    );
+
+    setClients(clientsData || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -112,18 +105,15 @@ export default function Payments() {
         clientFilter === "all" || payment.clientId === clientFilter;
       const matchesMonth =
         monthFilter === "all" || payment.monthFor === monthFilter;
+      const matchesStatus =
+        statusFilter === "all" || payment.status === statusFilter;
       const matchesSearch =
         payment.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (payment.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ??
           false);
 
-      return matchesClient && matchesMonth && matchesSearch;
-    })
-    .sort(
-      (a, b) =>
-        new Date(b.paymentDate).getTime() -
-        new Date(a.paymentDate).getTime()
-    );
+      return matchesClient && matchesMonth && matchesStatus && matchesSearch;
+    });
 
   const totalAmount = filteredPayments.reduce(
     (sum, p) => sum + p.amount,
@@ -133,151 +123,151 @@ export default function Payments() {
   /* ---------- UI ---------- */
 
   return (
-    <div className="page-container section-spacing">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="text-headline">Payments</h1>
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <h1 className="text-display mb-1">Payments</h1>
           <p className="text-muted-foreground">
-            All client payments in one place
+            Monitor and manage all client fee records
           </p>
         </motion.div>
         <AddPaymentDialog />
       </div>
 
-      {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="flex flex-col sm:flex-row gap-4"
-      >
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search payments..."
-            className="pl-9"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      {/* Filters Bar */}
+      <Card className="p-4 bg-muted/30 border-none shadow-none">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by student or notes..."
+              className="pl-9 bg-background"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <Select value={clientFilter} onValueChange={setClientFilter}>
+            <SelectTrigger className="bg-background">
+              <div className="flex items-center gap-2">
+                <Filter className="h-3 w-3 text-muted-foreground" />
+                <SelectValue placeholder="All Students" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Students</SelectItem>
+              {clients.map((client) => (
+                <SelectItem key={client.id} value={client.id}>
+                  {client.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={monthFilter} onValueChange={setMonthFilter}>
+            <SelectTrigger className="bg-background">
+              <div className="flex items-center gap-2">
+                <ListFilter className="h-3 w-3 text-muted-foreground" />
+                <SelectValue placeholder="All Months" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Months</SelectItem>
+              {uniqueMonths.map((month) => (
+                <SelectItem key={month} value={month}>
+                  {formatMonthYear(month)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+      </Card>
 
-        <Select value={clientFilter} onValueChange={setClientFilter}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="All Clients" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Clients</SelectItem>
-            {clients.map((client) => (
-              <SelectItem key={client.id} value={client.id}>
-                {client.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Summary Stat */}
+      <div className="flex items-center justify-between p-4 bg-primary/5 border border-primary/10 rounded-2xl">
+        <div className="flex items-center gap-4 text-sm">
+          <span className="text-muted-foreground">
+            Showing <span className="text-foreground font-bold">{filteredPayments.length}</span> payments
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground uppercase font-bold tracking-tighter">Total Value</span>
+          <span className="text-2xl font-bold text-primary">
+            {formatCurrency(totalAmount)}
+          </span>
+        </div>
+      </div>
 
-        <Select value={monthFilter} onValueChange={setMonthFilter}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="All Months" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Months</SelectItem>
-            {uniqueMonths.map((month) => (
-              <SelectItem key={month} value={month}>
-                {formatMonthYear(month)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </motion.div>
+      {/* List */}
+      <Card className="border-none shadow-sm overflow-hidden">
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="text-muted-foreground">Loading fee records...</p>
+            </div>
+          ) : filteredPayments.length === 0 ? (
+            <div className="text-center py-20 bg-muted/10 rounded-xl m-4 border-2 border-dashed border-muted">
+              <IndianRupee className="h-12 w-12 mx-auto mb-4 opacity-10" />
+              <p className="text-lg font-medium text-muted-foreground">No records found</p>
+              <p className="text-sm text-muted-foreground/60">Try adjusting your filters or search query.</p>
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table */}
+              <div className="hidden lg:block">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-muted/50 border-b">
+                      <th className="py-4 px-6 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground">Student</th>
+                      <th className="py-4 px-6 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground">Month</th>
+                      <th className="py-4 px-6 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground">Amount</th>
+                      <th className="py-4 px-6 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground">Status</th>
+                      <th className="py-4 px-6 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground">Date</th>
+                      <th className="py-4 px-6 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground">Notes</th>
+                      <th className="py-4 px-6 text-right text-xs font-bold uppercase tracking-widest text-muted-foreground">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {filteredPayments.map((payment, index) => (
+                      <PaymentRow
+                        key={payment.id}
+                        payment={payment}
+                        index={index}
+                        onUpdated={fetchData}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-      {/* Summary */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-accent/5 border rounded-xl"
-      >
-        <span className="text-sm text-muted-foreground">
-          {filteredPayments.length} payment
-          {filteredPayments.length !== 1 && "s"}
-        </span>
-        <span className="font-semibold text-primary">
-          Total: {formatCurrency(totalAmount)}
-        </span>
-      </motion.div>
-
-      {/* Payments List */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <Card>
-          <CardHeader className="hidden lg:block">
-            <CardTitle>Payment Records</CardTitle>
-          </CardHeader>
-
-          <CardContent className="p-0 lg:p-6 lg:pt-0">
-            {loading ? (
-              <p className="text-center py-12 text-muted-foreground">
-                Loading payments...
-              </p>
-            ) : filteredPayments.length === 0 ? (
-              <p className="text-center py-12 text-muted-foreground">
-                No payments found matching your filters.
-              </p>
-            ) : (
-              <>
-                {/* Desktop */}
-                <div className="hidden lg:block overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="py-3 px-4 text-left text-sm font-medium text-muted-foreground">
-                          Client
-                        </th>
-                        <th className="py-3 px-4 text-left text-sm font-medium text-muted-foreground">
-                          Month For
-                        </th>
-                        <th className="py-3 px-4 text-left text-sm font-medium text-muted-foreground">
-                          Amount
-                        </th>
-                        <th className="py-3 px-4 text-left text-sm font-medium text-muted-foreground">
-                          Payment Date
-                        </th>
-                        <th className="py-3 px-4 text-left text-sm font-medium text-muted-foreground">
-                          Notes
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredPayments.map((payment, index) => (
-                        <PaymentRow
-                          key={payment.id}
-                          payment={payment}
-                          index={index}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Mobile */}
-                <div className="lg:hidden p-4 space-y-3">
-                  {filteredPayments.map((payment, index) => (
-                    <PaymentCard
-                      key={payment.id}
-                      payment={payment}
-                      index={index}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+              {/* Mobile List */}
+              <div className="lg:hidden p-4 space-y-4">
+                {filteredPayments.map((payment, index) => (
+                  <PaymentCard
+                    key={payment.id}
+                    payment={payment}
+                    index={index}
+                    onUpdated={fetchData}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

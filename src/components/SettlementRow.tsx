@@ -1,9 +1,15 @@
 import { motion } from "framer-motion";
 import { Pencil, Trash2 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
-import type { Settlement } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { EditSettlementDialog } from "@/components/EditSettlementDialog";
+
+export interface Settlement {
+  id: string;
+  amount: number;
+  date: string;
+  notes?: string;
+}
 
 interface SettlementRowProps {
   settlement: Settlement;

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
-import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, ShieldCheck, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function Login() {
@@ -21,20 +21,43 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error, data } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      toast.error(error.message);
+      if (error) {
+        toast.error(error.message);
+        setLoading(false);
+        return;
+      }
+
+      if (data.user) {
+        // ✅ Role Validation
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", data.user.id)
+          .single();
+
+        if (profileError || profile?.role !== "teacher") {
+          toast.error("This portal is for Teachers/Agents only.");
+          await supabase.auth.signOut();
+          setLoading(false);
+          return;
+        }
+
+        toast.success("Welcome back!");
+        navigate("/dashboard", { replace: true });
+      } else {
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error("Login unexpected error:", err);
+      toast.error("An unexpected error occurred during login.");
       setLoading(false);
-      return;
     }
-
-    toast.success("Welcome back!");
-    navigate("/dashboard", { replace: true });
-    setLoading(false);
   };
 
   return (
@@ -123,6 +146,32 @@ export default function Login() {
               Create one
             </Link>
           </p>
+
+          <div className="mt-12 pt-8 border-t border-border">
+            <p className="text-center text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">
+              Switch Portal
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-9 justify-start px-3"
+                onClick={() => navigate("/owner/login")}
+              >
+                <ShieldCheck className="h-3.5 w-3.5 mr-2 text-primary" />
+                Owner Portal
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-9 justify-start px-3"
+                onClick={() => navigate("/student/login")}
+              >
+                <User className="h-3.5 w-3.5 mr-2 text-accent" />
+                Student Portal
+              </Button>
+            </div>
+          </div>
         </motion.div>
       </div>
 

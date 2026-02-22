@@ -5,6 +5,13 @@ import { Input } from "@/components/ui/input";
 import { ClientCard } from "@/components/ClientCard";
 import { AddClientDialog } from "@/components/AddClientDialog";
 import { supabase } from "@/lib/supabase";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 /* ---------------- TYPES ---------------- */
 
@@ -16,6 +23,8 @@ export type Client = {
   commission_rate: number;
   status: "active" | "inactive";
   created_at: string;
+  invite_code?: string;
+  profile_id?: string;
 };
 
 /* ---------------- COMPONENT ---------------- */
@@ -38,11 +47,11 @@ export default function Clients() {
 
     const { data, error } = await supabase
       .from("clients")
-      .select("*")
+      .select("id, name, phone, default_fee, commission_rate, status, created_at, invite_code, profile_id")
       .order("created_at", { ascending: false });
 
     if (!error && data) {
-      setClients(data);
+      setClients(data as Client[]);
     }
 
     setLoading(false);
@@ -136,17 +145,19 @@ export default function Clients() {
         </div>
 
         {/* Status Filter */}
-        <select
-          className="border rounded-md px-3 py-2 text-sm"
+        <Select
           value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value as "all" | "active" | "inactive")
-          }
+          onValueChange={(val: any) => setStatusFilter(val)}
         >
-          <option value="all">All</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
+          <SelectTrigger className="w-full sm:w-40 bg-background">
+            <SelectValue placeholder="All Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active Only</SelectItem>
+            <SelectItem value="inactive">Inactive Only</SelectItem>
+          </SelectContent>
+        </Select>
       </motion.div>
 
       {/* Client List */}
