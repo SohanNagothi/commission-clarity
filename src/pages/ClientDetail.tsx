@@ -30,6 +30,7 @@ interface UIPayment {
   amount: number;
   paymentDate: string;
   monthFor: string;
+  status: string;
 }
 
 export default function ClientDetail() {
@@ -50,11 +51,12 @@ export default function ClientDetail() {
       setLoading(true);
 
       /* ---- Fetch client ---- */
-      const { data: clientData, error: clientError } = await supabase
+      const { data: clients, error: clientError } = await supabase
         .from("clients")
         .select("*")
-        .eq("id", id)
-        .single();
+        .eq("id", id);
+
+      const clientData = clients?.[0];
 
       if (clientError || !clientData) {
         toast.error("Client not found");
@@ -67,7 +69,7 @@ export default function ClientDetail() {
       /* ---- Fetch payments ---- */
       const { data: paymentData, error: paymentError } = await supabase
         .from("payments")
-        .select("id, amount, payment_date, client_id")
+        .select("id, amount, payment_date, client_id, status")
         .eq("client_id", id)
         .order("payment_date", { ascending: false });
 
@@ -82,6 +84,7 @@ export default function ClientDetail() {
             amount: p.amount,
             paymentDate: p.payment_date,
             monthFor: p.payment_date.slice(0, 7), // YYYY-MM
+            status: p.status || 'paid',
           })) || [];
 
         setPayments(formatted);

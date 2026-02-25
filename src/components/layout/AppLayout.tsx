@@ -17,7 +17,8 @@ import {
   Bell,
   Search,
   Building2,
-  GraduationCap
+  GraduationCap,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
@@ -40,14 +41,17 @@ const NAV_CONFIG: Record<UserRole, any[]> = {
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Clients", href: "/clients", icon: Users },
     { name: "Payments", href: "/payments", icon: IndianRupee },
+    { name: "Jobs", href: "/jobs", icon: GraduationCap },
     { name: "Settlements", href: "/settlements", icon: HandCoins },
     { name: "Analytics", href: "/analytics", icon: BarChart3 },
   ],
   owner: [
     { name: "Overview", href: "/owner/dashboard", icon: LayoutDashboard },
     { name: "Teachers", href: "/owner/teachers", icon: GraduationCap },
+    { name: "Approvals", href: "/owner/approvals", icon: AlertCircle },
+    { name: "Job Board", href: "/owner/jobs", icon: Plus },
     { name: "Settlements", href: "/owner/settlements", icon: HandCoins },
-    { name: "Analytics", href: "/analytics", icon: BarChart3 }, // reused for now
+    { name: "Analytics", href: "/analytics", icon: BarChart3 },
   ],
   client: [
     { name: "My Fees", href: "/student/dashboard", icon: LayoutDashboard },

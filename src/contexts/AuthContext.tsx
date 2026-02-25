@@ -11,10 +11,12 @@ export interface Profile {
   full_name: string;
   email: string;
   phone: string;
-  organization: string;
+  organization_name: string | null;
+  teacher_type: string | null;
   role: UserRole;
   avatar_url: string | null;
   owner_id: string | null;
+  teacher_id: string | null;
   org_invite_code: string | null;
 }
 
@@ -42,11 +44,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", userId)
-        .single();
+        .eq("id", userId);
 
-      if (!error && data) {
-        setProfile(data as Profile);
+      if (!error && data && data.length > 0) {
+        setProfile(data[0] as Profile);
+        setLoading(false);
         return;
       }
 
@@ -56,8 +58,51 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
 
-    console.warn("Profile not found after retries for user:", userId);
+    // 🚀 SELF-REPAIR: If profile is missing but user is authenticated, 
+    // try to create it using auth metadata (in case trigger failed)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && user.user_metadata?.role) {
+      console.log("Attempting profile self-repair for:", user.email);
+      const meta = user.user_metadata;
+
+      const newProfile = {
+        id: user.id,
+        full_name: meta.full_name || "User",
+        email: user.email,
+        role: meta.role,
+        organization_name: meta.organization_name || null,
+        teacher_type: meta.teacher_type || null,
+        owner_id: meta.owner_id || null,
+        teacher_id: meta.teacher_id || null,
+        phone: "",
+        avatar_url: null,
+        org_invite_code: meta.org_invite_code || null,
+      };
+
+      const { error: insError } = await supabase.from("profiles").insert(newProfile);
+
+      if (!insError) {
+        // If student, also ensure client record exists
+        if (meta.role === 'client' && meta.teacher_id) {
+          await supabase.from("clients").insert({
+            user_id: meta.teacher_id,
+            name: meta.full_name,
+            email: user.email,
+            profile_id: user.id,
+            commission_rate: 10
+          });
+        }
+        setProfile(newProfile as unknown as Profile);
+        setLoading(false); // End loading if self-repair successful
+        return;
+      } else {
+        console.error("Self-repair failed:", insError);
+      }
+    }
+
+    console.warn("Profile not found after retries and repair attempt for user:", userId);
     setProfile(null);
+    setLoading(false); // End loading if profile not found or repair failed
   };
 
   /** Public method to re-fetch the profile (e.g. after editing Account) */
@@ -68,49 +113,52 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    let lastHandledId: string | null = null;
+    let mounted = true;
 
-    const syncUserAndProfile = async (sessionUser: User | null) => {
-      // Avoid redundant work if the user hasn't changed
-      if (sessionUser?.id === lastHandledId && (sessionUser || lastHandledId === null)) {
+    const setupAuth = async () => {
+      // 1. Get initial session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (mounted) {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        }
         setLoading(false);
-        return;
       }
 
-      lastHandledId = sessionUser?.id ?? null;
-      setUser(sessionUser);
+      // 2. Listen for auth changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (!mounted) return;
+          console.log("Auth Event:", event);
 
-      if (sessionUser) {
-        await fetchProfile(sessionUser.id);
-      } else {
-        setProfile(null);
-      }
+          const sessionUser = session?.user ?? null;
 
-      setLoading(false);
+          if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+            setUser(sessionUser);
+            if (sessionUser) {
+              setLoading(true);
+              await fetchProfile(sessionUser.id);
+            }
+            setLoading(false);
+          } else if (event === 'SIGNED_OUT') {
+            setUser(null);
+            setProfile(null);
+            setLoading(false);
+          } else if (event === 'TOKEN_REFRESHED') {
+            setUser(sessionUser);
+          }
+        }
+      );
+
+      return subscription;
     };
 
-    // 1. Handle initial session
-    setLoading(true);
-    supabase.auth.getSession().then(({ data }) => {
-      syncUserAndProfile(data.session?.user ?? null);
-    });
-
-    // 2. Handle auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        const sessionUser = session?.user ?? null;
-
-        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
-          setLoading(true);
-          syncUserAndProfile(sessionUser);
-        } else if (event === 'SIGNED_OUT') {
-          syncUserAndProfile(null);
-        }
-      }
-    );
+    const authSubPromise = setupAuth();
 
     return () => {
-      subscription.unsubscribe();
+      mounted = false;
+      authSubPromise.then(sub => sub.unsubscribe());
     };
   }, []);
 

@@ -34,13 +34,14 @@ export default function OwnerLogin() {
 
         if (data.user) {
             // ✅ Role Validation
-            const { data: profile, error: profileError } = await supabase
+            const { data: profiles, error: profileError } = await supabase
                 .from("profiles")
                 .select("role")
-                .eq("id", data.user.id)
-                .single();
+                .eq("id", data.user.id);
 
-            if (profileError || profile?.role !== "owner") {
+            const profile = profiles?.[0];
+
+            if (profileError || !profile || profile.role !== "owner") {
                 toast.error("This portal is for Organization Owners only.");
                 await supabase.auth.signOut();
                 setLoading(false);

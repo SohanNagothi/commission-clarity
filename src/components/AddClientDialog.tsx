@@ -23,6 +23,7 @@ export function AddClientDialog({
   const [phone, setPhone] = useState("");
   const [defaultFee, setDefaultFee] = useState("");
   const [commission, setCommission] = useState("");
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
   const resetForm = () => {
@@ -30,6 +31,7 @@ export function AddClientDialog({
     setPhone("");
     setDefaultFee("");
     setCommission("");
+    setEmail("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,7 +52,7 @@ export function AddClientDialog({
 
     /* ---- Basic validation ---- */
     if (!name || !phone || !defaultFee || !commission) {
-      toast.error("Please fill all fields");
+      toast.error("Please fill all required fields");
       setLoading(false);
       return;
     }
@@ -59,6 +61,7 @@ export function AddClientDialog({
       user_id: user.id,
       name,
       phone,
+      email: email || null,
       default_fee: Number(defaultFee),
       commission_rate: Number(commission),
       status: "active",
@@ -115,6 +118,20 @@ export function AddClientDialog({
               onChange={(e) => setPhone(e.target.value)}
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email (Optional)</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="student@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Provides automatic linking if the student uses this email to register.
+            </p>
           </div>
 
           {/* Fees */}

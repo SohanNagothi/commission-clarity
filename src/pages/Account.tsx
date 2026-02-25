@@ -13,8 +13,9 @@ type Profile = {
   full_name: string;
   email: string;
   phone: string;
-  organization: string;
+  organization_name: string;
   role: string;
+  teacher_id?: string | null;
 };
 
 export default function Account() {
@@ -24,8 +25,9 @@ export default function Account() {
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
-    organization: "",
+    organization_name: "",
   });
+  const [teacherName, setTeacherName] = useState("");
 
   // Sync local form with profile when it loads
   useEffect(() => {
@@ -33,10 +35,19 @@ export default function Account() {
       setFormData({
         full_name: profile.full_name || "",
         phone: profile.phone || "",
-        organization: profile.organization || "",
+        organization_name: profile.organization_name || "",
       });
+
+      if (profile.role === 'client' && profile.teacher_id) {
+        fetchTeacherName(profile.teacher_id);
+      }
     }
   }, [profile]);
+
+  const fetchTeacherName = async (tId: string) => {
+    const { data } = await supabase.from("profiles").select("full_name").eq("id", tId).single();
+    if (data) setTeacherName(data.full_name);
+  };
 
   // 🔹 Save profile
   const handleSave = async () => {
@@ -48,7 +59,7 @@ export default function Account() {
       .update({
         full_name: formData.full_name,
         phone: formData.phone,
-        organization: formData.organization,
+        organization_name: formData.organization_name,
       })
       .eq("id", profile.id);
 
@@ -82,7 +93,6 @@ export default function Account() {
     if (!profile?.id) return;
     setSaving(true);
 
-    // Simple 8-char random code
     const newCode = Math.random().toString(36).substring(2, 10).toUpperCase();
 
     const { error } = await supabase
@@ -114,7 +124,6 @@ export default function Account() {
         animate={{ opacity: 1, y: 0 }}
         className="section-spacing"
       >
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-headline">My Account</h1>
@@ -145,7 +154,6 @@ export default function Account() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Profile Picture & Stats */}
           <div className="lg:col-span-1 space-y-6">
             <Card>
               <CardContent className="pt-6 flex flex-col items-center text-center">
@@ -157,31 +165,26 @@ export default function Account() {
                     <Camera className="h-4 w-4" />
                   </button>
                 </div>
-                <h2 className="mt-4 text-xl font-bold">
-                  {profile.full_name}
-                </h2>
+                <h2 className="mt-4 text-xl font-bold">{profile.full_name}</h2>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest rounded-full">
                     {profile.role}
                   </span>
                 </div>
-                <p className="text-sm text-muted-foreground mt-3 italic">
-                  {profile.email}
-                </p>
+                <p className="text-sm text-muted-foreground mt-3 italic">{profile.email}</p>
               </CardContent>
             </Card>
 
-            <div className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 rounded-2xl border border-primary/10">
-              <h4 className="font-bold text-primary mb-2 text-sm">Sharing Tip</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {profile.role === 'owner'
-                  ? "Share your code with Teachers/Agents so they can automatically join your organization."
-                  : "Share your code with Students so they are automatically linked to you for commission tracking."}
-              </p>
-            </div>
+            {profile.role === 'client' && (
+              <div className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 rounded-2xl border border-primary/10">
+                <h4 className="font-bold text-primary mb-2 text-sm">My Instructor</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  You are linked to your instructor for fee tracking. If you have any questions about your payments, please contact them.
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Profile Form */}
           <Card className="lg:col-span-2 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
@@ -196,9 +199,7 @@ export default function Account() {
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Full Name</Label>
                   <Input
                     value={formData.full_name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, full_name: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                     className="h-11"
                   />
                 </div>
@@ -212,28 +213,32 @@ export default function Account() {
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Phone Number</Label>
                   <Input
                     value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     className="h-11"
                     placeholder="+91 XXXXX XXXXX"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Organization</Label>
-                  <Input
-                    value={formData.organization}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        organization: e.target.value,
-                      })
-                    }
-                    className="h-11"
-                    placeholder="Enter your academy name"
-                  />
-                </div>
+                {profile.role === 'client' ? (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">My Teacher</Label>
+                    <Input
+                      value={teacherName || "Loading..."}
+                      disabled
+                      className="h-11 bg-muted/50"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Organization</Label>
+                    <Input
+                      value={formData.organization_name}
+                      onChange={(e) => setFormData({ ...formData, organization_name: e.target.value })}
+                      className="h-11"
+                      placeholder="Enter your academy name"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end pt-4 border-t border-border">

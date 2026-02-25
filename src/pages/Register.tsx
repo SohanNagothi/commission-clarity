@@ -29,6 +29,8 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"teacher" | "owner" | "client">("teacher");
   const [inviteCode, setInviteCode] = useState("");
+  const [organizationName, setOrganizationName] = useState("");
+  const [teacherType, setTeacherType] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -48,6 +50,11 @@ export default function Register() {
           setLoading(false);
           return;
         }
+        if (!teacherType) {
+          toast.error("Teacher type is required");
+          setLoading(false);
+          return;
+        }
         // Verify owner code
         const { data: ownerProfile, error: ownerError } = await supabase
           .from("profiles")
@@ -64,6 +71,14 @@ export default function Register() {
         ownerId = ownerProfile.id;
       }
 
+      if (role === "owner") {
+        if (!organizationName) {
+          toast.error("Organization name is required");
+          setLoading(false);
+          return;
+        }
+      }
+
       if (role === "client") {
         if (!inviteCode) {
           toast.error("Student invite code is required");
@@ -74,7 +89,7 @@ export default function Register() {
         const { data: teacherProfile, error: teacherError } = await supabase
           .from("profiles")
           .select("id, owner_id")
-          .eq("org_invite_code", inviteCode.trim().toUpperCase())
+          .ilike("org_invite_code", inviteCode.trim())
           .eq("role", "teacher")
           .single();
 
@@ -86,7 +101,7 @@ export default function Register() {
           const { data: clientRecord, error: clientError } = await supabase
             .from("clients")
             .select("id, user_id")
-            .eq("invite_code", inviteCode.trim().toUpperCase())
+            .ilike("invite_code", inviteCode.trim())
             .single();
 
           if (clientError || !clientRecord) {
@@ -108,7 +123,10 @@ export default function Register() {
             full_name: name,
             role: role,
             owner_id: ownerId,
-            teacher_id: teacherId
+            teacher_id: teacherId,
+            organization_name: role === "owner" ? organizationName : null,
+            teacher_type: role === "teacher" ? teacherType : null,
+            client_id: clientIdToLink,
           },
         },
       });
@@ -196,6 +214,55 @@ export default function Register() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Organization Name for Owners */}
+            <AnimatePresence mode="wait">
+              {role === "owner" && (
+                <motion.div
+                  key="org-name"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden space-y-2"
+                >
+                  <Label htmlFor="org-name">Organization Name</Label>
+                  <Input
+                    id="org-name"
+                    placeholder="e.g. ABC Academy"
+                    value={organizationName}
+                    onChange={(e) => setOrganizationName(e.target.value)}
+                    required
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Teacher Type for Teachers */}
+            <AnimatePresence mode="wait">
+              {role === "teacher" && (
+                <motion.div
+                  key="teacher-type"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden space-y-2"
+                >
+                  <Label htmlFor="teacher-type">Teacher Type</Label>
+                  <Select value={teacherType} onValueChange={setTeacherType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="academic">Academic (Math, Science, etc.)</SelectItem>
+                      <SelectItem value="music">Music / Arts</SelectItem>
+                      <SelectItem value="sports">Sports / Fitness</SelectItem>
+                      <SelectItem value="language">Languages</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>

@@ -23,6 +23,7 @@ export default function OwnerDashboard() {
     const [stats, setStats] = useState({
         teachers: 0,
         revenue: 0,
+        pendingFeeApprovals: 0,
         pendingSettlements: 0,
         students: 0
     });
@@ -55,12 +56,22 @@ export default function OwnerDashboard() {
 
             if (studentsError) throw studentsError;
 
-            // 3. Fetch Payments (Total revenue from those teachers)
+            // 3. Fetch Payments stats
+            // Pending Fee Approvals
+            const { count: pendingFeeCount, error: pendingFeesErr } = await supabase
+                .from("payments")
+                .select("*", { count: 'exact', head: true })
+                .in("user_id", teacherIds)
+                .eq("status", "pending_owner_approval");
+
+            if (pendingFeesErr) throw pendingFeesErr;
+
+            // Total Approved/Paid Revenue
             const { data: payments, error: paymentsError } = await supabase
                 .from("payments")
                 .select("amount")
                 .in("user_id", teacherIds)
-                .eq("status", "paid");
+                .in("status", ["approved", "paid"]);
 
             if (paymentsError) throw paymentsError;
             const totalRevenue = payments?.reduce((acc, p) => acc + p.amount, 0) || 0;
@@ -77,6 +88,7 @@ export default function OwnerDashboard() {
             setStats({
                 teachers: teacherIds.length,
                 revenue: totalRevenue,
+                pendingFeeApprovals: pendingFeeCount || 0,
                 pendingSettlements: totalRevenue - totalSettled, // Simple calculation for now
                 students: studentCount || 0
             });
@@ -120,7 +132,7 @@ export default function OwnerDashboard() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                 <StatCard
                     title="Total Teachers"
                     value={loading ? "..." : stats.teachers.toString()}
@@ -129,25 +141,39 @@ export default function OwnerDashboard() {
                     variant="default"
                 />
                 <StatCard
-                    title="Org Revenue"
-                    value={loading ? "..." : formatCurrency(stats.revenue)}
-                    subtitle="All-time processed"
-                    icon={TrendingUp}
-                    variant="success"
-                />
-                <StatCard
-                    title="Pending Settlements"
-                    value={loading ? "..." : formatCurrency(stats.pendingSettlements)}
-                    subtitle="Owed to teachers"
-                    icon={HandCoins}
-                    variant="warning"
-                />
-                <StatCard
                     title="Total Students"
                     value={loading ? "..." : stats.students.toString()}
                     subtitle="Managed by teachers"
                     icon={Users}
                     variant="accent"
+                />
+                <StatCard
+                    title="Org Revenue"
+                    value={loading ? "..." : formatCurrency(stats.revenue)}
+                    subtitle="Approved fees"
+                    icon={TrendingUp}
+                    variant="success"
+                />
+                <StatCard
+                    title="Pending Approvals"
+                    value={loading ? "..." : stats.pendingFeeApprovals.toString()}
+                    subtitle="Fee payments"
+                    icon={AlertCircle}
+                    variant="warning"
+                />
+                <StatCard
+                    title="Payable to Teachers"
+                    value={loading ? "..." : formatCurrency(stats.pendingSettlements)}
+                    subtitle="Owed amount"
+                    icon={HandCoins}
+                    variant="warning"
+                />
+                <StatCard
+                    title="Owner Earnings"
+                    value={loading ? "..." : formatCurrency(stats.revenue * 0.4)} // 40% commission default
+                    subtitle="Est. earnings (40%)"
+                    icon={TrendingUp}
+                    variant="success"
                 />
             </div>
 

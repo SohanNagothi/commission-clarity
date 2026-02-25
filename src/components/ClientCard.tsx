@@ -53,7 +53,8 @@ export function ClientCard({
     const { error } = await supabase
       .from("notifications")
       .insert({
-        profile_id: client.profile_id,
+        recipient_id: client.profile_id,
+        sender_id: profile?.id,
         type: 'fee_reminder',
         title: 'Fee Payment Reminder',
         message: `Your teacher ${profile?.full_name} has requested a fee update. Please check your dues.`,
@@ -130,6 +131,12 @@ export function ClientCard({
                       className="text-[10px] h-4 px-1.5"
                     >
                       {client.status}
+                    </Badge>
+                    <Badge
+                      variant={client.profile_id ? "default" : "outline"}
+                      className="text-[10px] h-4 px-1.5"
+                    >
+                      {client.profile_id ? "Online" : "Offline"}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground flex items-center gap-1.5">

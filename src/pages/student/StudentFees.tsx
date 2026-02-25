@@ -7,6 +7,7 @@ import {
     Download,
     CheckCircle2,
     Clock,
+    XCircle,
     ArrowUpDown
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,11 +43,12 @@ export default function StudentFees() {
 
         try {
             // 1. Get client record for this profile
-            const { data: client } = await supabase
+            const { data: clients } = await supabase
                 .from("clients")
-                .select("id")
-                .eq("profile_id", profile.id)
-                .single();
+                .select("id, user_id, profiles!user_id(full_name)")
+                .eq("profile_id", profile.id);
+
+            const client = clients?.[0];
 
             if (!client) throw new Error("Client record not found");
 
@@ -147,10 +149,28 @@ export default function StudentFees() {
                                     <td className="p-4 font-bold">{formatMonthYear(p.month_for)}</td>
                                     <td className="p-4 text-sm text-muted-foreground">{formatDate(p.payment_date)}</td>
                                     <td className="p-4">
-                                        <Badge variant={p.status === 'paid' ? 'success' : 'warning'} className="capitalize gap-1">
-                                            {p.status === 'paid' ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                                            {p.status}
+                                        <Badge
+                                            variant={
+                                                p.status === 'paid' || p.status === 'approved' ? 'success' :
+                                                    p.status === 'rejected' ? 'destructive' :
+                                                        'warning'
+                                            }
+                                            className="capitalize gap-1"
+                                        >
+                                            {p.status === 'paid' || p.status === 'approved' ? (
+                                                <CheckCircle2 className="h-3 w-3" />
+                                            ) : p.status === 'rejected' ? (
+                                                <XCircle className="h-3 w-3" />
+                                            ) : (
+                                                <Clock className="h-3 w-3" />
+                                            )}
+                                            {p.status.replace(/_/g, ' ')}
                                         </Badge>
+                                        {p.status === 'rejected' && p.rejection_reason && (
+                                            <p className="text-[10px] text-destructive mt-1 font-medium">{p.rejection_reason}</p>
+                                        )}
+                                        {/* Added Teacher Name hint for clarity */}
+                                        <p className="text-[10px] text-muted-foreground mt-1">Verified by Instructor</p>
                                     </td>
                                     <td className="p-4 text-right font-bold text-lg">
                                         <span className={p.status === 'paid' ? 'text-foreground' : 'text-warning'}>

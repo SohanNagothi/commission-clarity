@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import {
     Bell,
     Circle,
@@ -144,15 +145,22 @@ export function NotificationBell() {
 
                 <div className="max-h-[400px] overflow-y-auto py-1 scrollbar-hide">
                     {notifications.length === 0 ? (
-                        <div className="py-12 text-center text-muted-foreground">
-                            <Bell className="h-8 w-8 mx-auto mb-2 opacity-10" />
-                            <p className="text-sm font-medium">No notifications yet</p>
-                        </div>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="py-12 text-center text-muted-foreground"
+                        >
+                            <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                                <Bell className="h-6 w-6 opacity-20" />
+                            </div>
+                            <p className="text-sm font-bold opacity-40 uppercase tracking-widest">No notifications</p>
+                            <p className="text-[10px] opacity-30 mt-1">We'll let you know when something happens.</p>
+                        </motion.div>
                     ) : (
                         notifications.map((n) => (
                             <DropdownMenuItem
                                 key={n.id}
-                                className={`flex flex-col items-start gap-1 p-3 rounded-xl cursor-pointer mb-1 focus:bg-muted/50 ${!n.read ? 'bg-primary/5 border-l-2 border-primary' : ''}`}
+                                className={`flex flex-col items-start gap-1 p-3 rounded-xl cursor-pointer mb-1 focus:bg-muted/50 ${!n.is_read ? 'bg-primary/5 border-l-2 border-primary' : ''}`}
                                 onClick={() => markAsRead(n.id)}
                             >
                                 <div className="flex items-center justify-between w-full">

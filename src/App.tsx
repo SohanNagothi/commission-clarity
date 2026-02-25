@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -30,9 +30,11 @@ import Settlements from "./pages/Settlements";
 import Analytics from "./pages/Analytics";
 
 // Owner Pages (New)
+import JobOpportunities from "./pages/JobOpportunities";
 import OwnerDashboard from "./pages/owner/OwnerDashboard";
 import OwnerTeachers from "./pages/owner/OwnerTeachers";
 import OwnerSettlements from "./pages/owner/OwnerSettlements";
+import OwnerApprovals from "./pages/owner/OwnerApprovals";
 import OwnerLogin from "./pages/owner/OwnerLogin";
 
 // Student/Client Pages (New)
@@ -88,24 +90,26 @@ const App = () => (
                 }
               >
                 {/* 1. Teacher Routes */}
-                <Route element={<ProtectedRoute allowedRoles={["teacher"]} children={<></>} />}>
+                <Route element={<ProtectedRoute allowedRoles={["teacher"]} children={<Outlet />} />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/clients" element={<Clients />} />
-                  <Route path="/clients/:id" element={<ClientDetail />} />
+                  <Route path="/jobs" element={<JobOpportunities />} />
                   <Route path="/payments" element={<Payments />} />
                   <Route path="/settlements" element={<Settlements />} />
                   <Route path="/analytics" element={<Analytics />} />
                 </Route>
 
                 {/* 2. Owner Routes */}
-                <Route element={<ProtectedRoute allowedRoles={["owner"]} children={<></>} />}>
+                <Route element={<ProtectedRoute allowedRoles={["owner"]} children={<Outlet />} />}>
                   <Route path="/owner/dashboard" element={<OwnerDashboard />} />
                   <Route path="/owner/teachers" element={<OwnerTeachers />} />
+                  <Route path="/owner/approvals" element={<OwnerApprovals />} />
+                  <Route path="/owner/jobs" element={<JobOpportunities />} />
                   <Route path="/owner/settlements" element={<OwnerSettlements />} />
                 </Route>
 
                 {/* 3. Student Routes */}
-                <Route element={<ProtectedRoute allowedRoles={["client"]} children={<></>} />}>
+                <Route element={<ProtectedRoute allowedRoles={["client"]} children={<Outlet />} />}>
                   <Route path="/student/dashboard" element={<StudentDashboard />} />
                   <Route path="/student/fees" element={<StudentFees />} />
                 </Route>

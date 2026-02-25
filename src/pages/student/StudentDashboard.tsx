@@ -18,18 +18,24 @@ import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency, formatDate, formatMonthYear } from "@/lib/format";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { MarkAsPaidDialog } from "@/components/MarkAsPaidDialog";
 
 export default function StudentDashboard() {
-    const { profile } = useAuth();
+    const { profile, refreshProfile } = useAuth();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         totalPaid: 0,
         pendingFees: 0,
         lastPaymentDate: null as string | null,
         teacherName: "",
-        teacherPhone: ""
+        teacherPhone: "",
+        clientId: "",
+        teacherId: "",
+        totalExpected: 0,
+        remainingDues: 0
     });
     const [recentPayments, setRecentPayments] = useState<any[]>([]);
+    const [payDialogOpen, setPayDialogOpen] = useState(false);
 
     useEffect(() => {
         fetchStudentData();
@@ -41,17 +47,23 @@ export default function StudentDashboard() {
 
         try {
             // 1. Get client record for this profile
-            const { data: client, error: clientErr } = await supabase
+            const { data: clients, error: clientErr } = await supabase
                 .from("clients")
                 .select(`
-          id,
-          user_id,
-          profiles!clients_user_id_fkey ( full_name, email )
-        `)
-                .eq("profile_id", profile.id)
-                .single();
+                  id,
+                  user_id,
+                  default_fee,
+                  created_at,
+                  profiles!user_id ( full_name, email )
+                `)
+                .eq("profile_id", profile.id);
 
-            if (clientErr) throw clientErr;
+            const client = clients?.[0];
+
+            if (clientErr || !client) {
+                if (clientErr) throw clientErr;
+                throw new Error("Client record not found");
+            }
 
             // 2. Fetch all payments for this client
             const { data: payments, error: paymentsErr } = await supabase
@@ -63,19 +75,34 @@ export default function StudentDashboard() {
             if (paymentsErr) throw paymentsErr;
 
             const totalPaid = payments
-                ?.filter(p => p.status === 'paid')
+                ?.filter(p => p.status === 'paid' || p.status === 'approved')
                 .reduce((acc, p) => acc + p.amount, 0) || 0;
 
             const pendingFees = payments
                 ?.filter(p => p.status === 'pending')
                 .reduce((acc, p) => acc + p.amount, 0) || 0;
 
+            const verificationFees = payments
+                ?.filter(p => p.status === 'pending_owner_approval')
+                .reduce((acc, p) => acc + p.amount, 0) || 0;
+
+            // 3. Calculate Dues
+            const signupDate = new Date(client.created_at);
+            const now = new Date();
+            const monthsElapsed = (now.getFullYear() - signupDate.getFullYear()) * 12 + (now.getMonth() - signupDate.getMonth());
+            const totalExpected = (Math.max(0, monthsElapsed) + 1) * (client.default_fee || 0);
+            const remainingDues = Math.max(0, totalExpected - totalPaid);
+
             setStats({
                 totalPaid,
                 pendingFees,
                 lastPaymentDate: payments?.[0]?.payment_date || null,
-                teacherName: (Array.isArray(client.profiles) ? client.profiles[0]?.full_name : (client.profiles as any)?.full_name) || "Assigned Teacher",
-                teacherPhone: "Contact via portal"
+                teacherName: (client.profiles as any)?.full_name || "Assigned Teacher",
+                teacherPhone: "Contact via portal",
+                clientId: client.id,
+                teacherId: client.user_id,
+                totalExpected,
+                remainingDues
             });
 
             setRecentPayments(payments?.slice(0, 5) || []);
@@ -91,35 +118,45 @@ export default function StudentDashboard() {
     return (
         <div className="space-y-8">
             {/* Header */}
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-                <h1 className="text-display mb-2">My Fee Dashboard</h1>
-                <p className="text-muted-foreground">
-                    Welcome back, {profile?.full_name?.split(' ')[0]}. Track your payments and fee status here.
-                </p>
-            </motion.div>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-display mb-2">My Fee Dashboard</h1>
+                    <p className="text-muted-foreground">
+                        Welcome back, {profile?.full_name?.split(' ')[0]}. Track your payments and fee status here.
+                    </p>
+                </div>
+                <Button
+                    size="lg"
+                    className="rounded-2xl gap-2 shadow-lg shadow-primary/20 h-14 px-8 text-lg font-bold"
+                    onClick={() => setPayDialogOpen(true)}
+                >
+                    <IndianRupee className="h-5 w-5" />
+                    Mark Fees as Paid
+                </Button>
+            </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <StatCard
-                    title="Total Paid"
+                    title="Total Owed"
+                    value={loading ? "..." : formatCurrency(stats.totalExpected)}
+                    subtitle="Fees since signup"
+                    icon={IndianRupee}
+                    variant="default"
+                />
+                <StatCard
+                    title="Amount Paid"
                     value={loading ? "..." : formatCurrency(stats.totalPaid)}
-                    subtitle="All-time fees paid"
+                    subtitle="Approved payments"
                     icon={CheckCircle2}
                     variant="success"
                 />
                 <StatCard
-                    title="Pending Fees"
-                    value={loading ? "..." : formatCurrency(stats.pendingFees)}
-                    subtitle="Awaiting payment"
+                    title="Remaining Dues"
+                    value={loading ? "..." : formatCurrency(stats.remainingDues)}
+                    subtitle={stats.remainingDues > 0 ? "Outstanding balance" : "All cleared!"}
                     icon={Clock}
-                    variant={stats.pendingFees > 0 ? "warning" : "default"}
-                />
-                <StatCard
-                    title="Last Payment"
-                    value={loading ? "..." : stats.lastPaymentDate ? formatDate(stats.lastPaymentDate) : "No records"}
-                    subtitle="Most recent update"
-                    icon={Calendar}
-                    variant="accent"
+                    variant={stats.remainingDues > 0 ? "warning" : "success"}
                 />
             </div>
 
@@ -159,8 +196,15 @@ export default function StudentDashboard() {
                                         </div>
                                         <div className="text-right">
                                             <p className="font-bold text-lg">{formatCurrency(p.amount)}</p>
-                                            <Badge variant={p.status === 'paid' ? 'success' : 'warning'} className="text-[10px] h-4">
-                                                {p.status}
+                                            <Badge
+                                                variant={
+                                                    p.status === 'paid' || p.status === 'approved' ? 'success' :
+                                                        p.status === 'rejected' ? 'destructive' :
+                                                            'warning'
+                                                }
+                                                className="text-[10px] h-4 capitalize"
+                                            >
+                                                {p.status.replace(/_/g, ' ')}
                                             </Badge>
                                         </div>
                                     </div>
@@ -203,6 +247,14 @@ export default function StudentDashboard() {
                     </div>
                 </div>
             </div>
+
+            <MarkAsPaidDialog
+                open={payDialogOpen}
+                onOpenChange={setPayDialogOpen}
+                clientId={stats.clientId}
+                teacherId={stats.teacherId}
+                onSuccess={refreshProfile}
+            />
         </div>
     );
 }

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, Users, PlusCircle, FilterX } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { ClientCard } from "@/components/ClientCard";
 import { AddClientDialog } from "@/components/AddClientDialog";
 import { supabase } from "@/lib/supabase";
@@ -104,8 +106,11 @@ export default function Clients() {
 
   if (loading) {
     return (
-      <div className="page-container py-20 text-center text-muted-foreground">
-        Loading clients...
+      <div className="page-container py-32 flex flex-col items-center justify-center space-y-4">
+        <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+        <p className="text-muted-foreground font-medium animate-pulse">
+          Loading your student roster...
+        </p>
       </div>
     );
   }
@@ -161,11 +166,46 @@ export default function Clients() {
       </motion.div>
 
       {/* Client List */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {filteredClients.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            No clients found.
-          </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="py-12"
+          >
+            <Card className="p-16 text-center border-dashed border-2 bg-muted/5 flex flex-col items-center justify-center">
+              <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mb-6">
+                {searchQuery || statusFilter !== "all" ? (
+                  <FilterX className="h-10 w-10 text-muted-foreground/40" />
+                ) : (
+                  <Users className="h-10 w-10 text-muted-foreground/40" />
+                )}
+              </div>
+              <h3 className="text-2xl font-black mb-2">
+                {searchQuery || statusFilter !== "all" ? "No results found" : "Your roster is empty"}
+              </h3>
+              <p className="text-muted-foreground max-w-sm mx-auto mb-8 leading-relaxed">
+                {searchQuery || statusFilter !== "all"
+                  ? `We couldn't find any clients matching "${searchQuery}". Try a different search term or clear filters.`
+                  : "Start building your student database. Add your first client to track their fees and commissions effortlessly."}
+              </p>
+
+              {searchQuery || statusFilter !== "all" ? (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter("all");
+                  }}
+                  className="rounded-xl px-8"
+                >
+                  Clear All Filters
+                </Button>
+              ) : (
+                <AddClientDialog onClientAdded={fetchClients} />
+              )}
+            </Card>
+          </motion.div>
         ) : (
           filteredClients.map((client, index) => (
             <ClientCard

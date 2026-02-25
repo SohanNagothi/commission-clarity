@@ -35,13 +35,14 @@ export default function Login() {
 
       if (data.user) {
         // ✅ Role Validation
-        const { data: profile, error: profileError } = await supabase
+        const { data: profiles, error: profileError } = await supabase
           .from("profiles")
           .select("role")
-          .eq("id", data.user.id)
-          .single();
+          .eq("id", data.user.id);
 
-        if (profileError || profile?.role !== "teacher") {
+        const profile = profiles?.[0];
+
+        if (profileError || !profile || profile.role !== "teacher") {
           toast.error("This portal is for Teachers/Agents only.");
           await supabase.auth.signOut();
           setLoading(false);

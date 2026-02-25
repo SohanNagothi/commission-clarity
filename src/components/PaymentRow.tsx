@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Pencil, Trash2, Clock, CheckCircle2 } from "lucide-react";
+import { Pencil, Trash2, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate, formatMonthYear } from "@/lib/format";
@@ -17,8 +17,9 @@ export interface Payment {
   monthFor: string;
   amount: number;
   paymentDate: string;
-  status: "paid" | "pending";
+  status: "pending_owner_approval" | "approved" | "rejected" | "paid" | "pending";
   notes?: string | null;
+  rejectionReason?: string | null;
 }
 
 interface PaymentRowProps {
@@ -67,16 +68,25 @@ export function PaymentRow({ payment, index = 0, onUpdated }: PaymentRowProps) {
         </td>
         <td className="py-4 px-4">
           <Badge
-            variant={payment.status === 'paid' ? 'success' : 'warning'}
+            variant={
+              payment.status === 'paid' || payment.status === 'approved' ? 'success' :
+                payment.status === 'rejected' ? 'destructive' :
+                  'warning'
+            }
             className="capitalize flex items-center w-fit gap-1"
           >
-            {payment.status === 'paid' ? (
+            {payment.status === 'paid' || payment.status === 'approved' ? (
               <CheckCircle2 className="h-3 w-3" />
+            ) : payment.status === 'rejected' ? (
+              <XCircle className="h-3 w-3" />
             ) : (
               <Clock className="h-3 w-3" />
             )}
-            {payment.status}
+            {payment.status.replace(/_/g, ' ')}
           </Badge>
+          {payment.status === 'rejected' && payment.rejectionReason && (
+            <p className="text-[10px] text-destructive mt-1 font-medium">{payment.rejectionReason}</p>
+          )}
         </td>
         <td className="py-4 px-4 text-muted-foreground whitespace-nowrap">
           {formatDate(payment.paymentDate)}

@@ -34,13 +34,14 @@ export default function StudentLogin() {
 
         if (data.user) {
             // ✅ Role Validation
-            const { data: profile, error: profileError } = await supabase
+            const { data: profiles, error: profileError } = await supabase
                 .from("profiles")
                 .select("role")
-                .eq("id", data.user.id)
-                .single();
+                .eq("id", data.user.id);
 
-            if (profileError || profile?.role !== "client") {
+            const profile = profiles?.[0];
+
+            if (profileError || !profile || profile.role !== "client") {
                 toast.error("This portal is for Students only.");
                 await supabase.auth.signOut();
                 setLoading(false);
