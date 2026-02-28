@@ -14,7 +14,10 @@ import {
     Mail,
     Phone,
     FilterX,
-    PlusCircle
+    PlusCircle,
+    Navigation,
+    Home,
+    ExternalLink
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,6 +70,13 @@ export default function JobOpportunities() {
     const [applyDialogOpen, setApplyDialogOpen] = useState(false);
     const [applyingTo, setApplyingTo] = useState<any>(null);
     const [applying, setApplying] = useState(false);
+
+    // Nearby Search (Geoapify)
+    const [nearbyOrgs, setNearbyOrgs] = useState<any[]>([]);
+    const [searchingNearby, setSearchingNearby] = useState(false);
+    const [location, setLocation] = useState<{ lat: number, lon: number } | null>(null);
+
+    const GEOAPIFY_KEY = import.meta.env.VITE_GEOAPIFY_API_KEY || "387c124874b34691999863ac35f5287f"; // Fallback to test key if not set
 
     useEffect(() => {
         fetchJobs();
@@ -216,6 +226,69 @@ export default function JobOpportunities() {
         setApplyDialogOpen(true);
     };
 
+    const handleFindNearby = () => {
+        if (!navigator.geolocation) {
+            toast.error("Geolocation is not supported by your browser");
+            return;
+        }
+
+        setSearchingNearby(true);
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+                setLocation(coords);
+                fetchNearbyOrgs(coords);
+            },
+            (err) => {
+                console.error(err);
+                if (err.code === 1) {
+                    toast.error("Location access denied. Please enable it in browser settings.");
+                } else {
+                    toast.error("Failed to get your location.");
+                }
+                setSearchingNearby(false);
+            }
+        );
+    };
+
+    const fetchNearbyOrgs = async (coords: { lat: number, lon: number }) => {
+        try {
+            const typeMap: any = {
+                academic: "education.school,education.university",
+                music: "education.music_school",
+                sports: "leisure.sports_centre,sports.sports_centre",
+                language: "education.language_school",
+                other: "education"
+            };
+
+            const category = typeMap[profile?.teacher_type || 'academic'] || "education";
+
+            const response = await fetch(
+                `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${coords.lon},${coords.lat},5000&bias=proximity:${coords.lon},${coords.lat}&limit=12&apiKey=${GEOAPIFY_KEY}`
+            );
+
+            const result = await response.json();
+
+            if (result.features) {
+                const orgs = result.features.map((f: any) => ({
+                    name: f.properties.name || f.properties.street || "Organization",
+                    address: f.properties.address_line2 || f.properties.city,
+                    distance: Math.round(f.properties.distance) / 1000,
+                    lat: f.properties.lat,
+                    lon: f.properties.lon,
+                    category: f.properties.categories[0]?.split('.').pop()?.replace('_', ' ') || 'Organization'
+                }));
+                setNearbyOrgs(orgs);
+                if (orgs.length === 0) toast.info("No organizations found nearby.");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to fetch nearby organizations");
+        } finally {
+            setSearchingNearby(false);
+        }
+    };
+
     const isApplied = (jobId: string) => {
         return applications.some(a => a.job_id === jobId);
     };
@@ -282,6 +355,88 @@ export default function JobOpportunities() {
                     <span className="hidden md:ml-2 md:inline">Sort</span>
                 </Button>
             </div>
+
+            {role === 'teacher' && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-6 bg-primary/5 p-6 rounded-3xl border border-primary/10"
+                >
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-primary/10 rounded-2xl">
+                                <Navigation className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-black">Nearby Opportunities</h2>
+                                <p className="text-xs text-muted-foreground">Find schools and academies near your location</p>
+                            </div>
+                        </div>
+                        <Button
+                            className="rounded-xl px-6 h-11 bg-primary shadow-lg shadow-primary/20"
+                            onClick={handleFindNearby}
+                            disabled={searchingNearby}
+                        >
+                            {searchingNearby ? (
+                                <span className="flex items-center gap-2">
+                                    <div className="h-4 w-4 border-2 border-white/30 border-t-white animate-spin rounded-full" />
+                                    Searching...
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-2">
+                                    <Search className="h-4 w-4" />
+                                    {nearbyOrgs.length > 0 ? "Refresh Search" : "Search Nearby"}
+                                </span>
+                            )}
+                        </Button>
+                    </div>
+
+                    {nearbyOrgs.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {nearbyOrgs.map((org, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: i * 0.05 }}
+                                >
+                                    <Card className="p-4 bg-background border-muted/50 hover:shadow-xl hover:-translate-y-1 transition-all group h-full flex flex-col justify-between overflow-hidden relative">
+                                        <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                                            <Navigation className="h-12 w-12 -rotate-12" />
+                                        </div>
+                                        <div className="relative">
+                                            <div className="flex justify-between items-start gap-2 mb-3">
+                                                <Badge variant="secondary" className="text-[9px] uppercase font-bold tracking-widest bg-primary/5 text-primary border-none">
+                                                    {org.category}
+                                                </Badge>
+                                                <div className="flex items-center gap-1 text-[10px] font-bold text-primary">
+                                                    <MapPin className="h-3 w-3" />
+                                                    {org.distance} km
+                                                </div>
+                                            </div>
+                                            <h3 className="font-bold text-sm line-clamp-1 group-hover:text-primary transition-colors">{org.name}</h3>
+                                            <p className="text-[11px] text-muted-foreground line-clamp-2 mt-1 leading-relaxed">{org.address}</p>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            className="w-full mt-4 h-9 text-[11px] gap-2 rounded-lg group-hover:bg-primary group-hover:text-white transition-all transform"
+                                            onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${org.name} ${org.address}`, '_blank')}
+                                        >
+                                            View on Maps
+                                            <ExternalLink className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </Card>
+                                </motion.div>
+                            ))}
+                        </div>
+                    ) : (location && !searchingNearby && (
+                        <div className="py-12 text-center text-muted-foreground bg-background/50 rounded-2xl border-2 border-dashed">
+                            <p className="text-sm font-medium">No organizations found within 5km.</p>
+                            <p className="text-[10px] mt-1 opacity-50">Try broadening your teacher type in account settings.</p>
+                        </div>
+                    ))}
+                </motion.div>
+            )}
 
             {filteredJobs.length === 0 ? (
                 <motion.div
