@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, X, AlertCircle, Clock, User, IndianRupee, FileText, FilterX, PlusCircle } from "lucide-react";
+import { Check, X, AlertCircle, Clock, User, IndianRupee, FileText, FilterX, PlusCircle, CreditCard, Banknote, Image as ImageIcon, ExternalLink } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +54,8 @@ export default function OwnerApprovals() {
                   amount,
                   month_for,
                   reference_proof,
+                  payment_method,
+                  proof_image_url,
                   created_at,
                   clients ( name, commission_rate, default_fee ),
                   profiles!user_id ( full_name, email )
@@ -174,6 +176,25 @@ export default function OwnerApprovals() {
                                                     <FileText className="h-3 w-3" />
                                                     Ref: {p.reference_proof || "N/A"}
                                                 </span>
+                                                <Badge variant="secondary" className="text-[10px] h-5 bg-muted/50 border-none font-bold">
+                                                    {p.payment_method === 'cash' ? (
+                                                        <span className="flex items-center gap-1 text-success">
+                                                            <Banknote className="h-3 w-3" />
+                                                            Cash
+                                                        </span>
+                                                    ) : (
+                                                        <span className="flex items-center gap-1 text-primary">
+                                                            <CreditCard className="h-3 w-3" />
+                                                            Online
+                                                        </span>
+                                                    )}
+                                                </Badge>
+                                                {p.proof_image_url && (
+                                                    <Badge variant="outline" className="text-[10px] h-5 border-primary/20 text-primary bg-primary/5">
+                                                        <ImageIcon className="h-3 w-3 mr-1" />
+                                                        Proof Attached
+                                                    </Badge>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -232,6 +253,32 @@ export default function OwnerApprovals() {
                                 <span className="font-bold">{(selectedPayment?.profiles as any)?.full_name || "Assigned Teacher"}</span>
                             </div>
                         </div>
+
+                        {selectedPayment?.proof_image_url && (
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium flex items-center gap-2">
+                                    <ImageIcon className="h-4 w-4" />
+                                    Payment Proof
+                                </label>
+                                <div className="relative group rounded-2xl overflow-hidden border border-muted/50 bg-muted/20">
+                                    <img
+                                        src={selectedPayment.proof_image_url}
+                                        alt="Payment Proof"
+                                        className="w-full h-auto max-h-[300px] object-contain cursor-pointer transition-transform group-hover:scale-105"
+                                        onClick={() => window.open(selectedPayment.proof_image_url, '_blank')}
+                                    />
+                                    <div
+                                        className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                                        onClick={() => window.open(selectedPayment.proof_image_url, '_blank')}
+                                    >
+                                        <p className="text-white text-xs font-bold flex items-center gap-2">
+                                            <ExternalLink className="h-4 w-4" />
+                                            View Full Size
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {actionType === "reject" && (
                             <div className="space-y-2">
