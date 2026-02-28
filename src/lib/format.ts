@@ -46,8 +46,10 @@ export function formatDateLong(dateString: string): string {
 /**
  * Format month for display (e.g., "2024-01" -> "January 2024")
  */
-export function formatMonth(monthString: string): string {
+export function formatMonth(monthString: string | null | undefined): string {
+  if (!monthString) return "N/A";
   const [year, month] = monthString.split('-');
+  if (!year || !month) return "N/A";
   const date = new Date(parseInt(year), parseInt(month) - 1);
   return new Intl.DateTimeFormat('en-IN', {
     month: 'long',
@@ -61,8 +63,10 @@ export const formatMonthYear = formatMonth;
 /**
  * Format month short (e.g., "2024-01" -> "Jan 2024")
  */
-export function formatMonthShort(monthString: string): string {
+export function formatMonthShort(monthString: string | null | undefined): string {
+  if (!monthString) return "N/A";
   const [year, month] = monthString.split('-');
+  if (!year || !month) return "N/A";
   const date = new Date(parseInt(year), parseInt(month) - 1);
   return new Intl.DateTimeFormat('en-IN', {
     month: 'short',
@@ -86,7 +90,7 @@ export function getRelativeTime(dateString: string): string {
   const now = new Date();
   const diffTime = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays} days ago`;

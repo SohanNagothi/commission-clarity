@@ -83,7 +83,7 @@ export default function Analytics() {
           const date = new Date(p.payment_date);
           const key = getMonthKey(date);
           const label = getMonthLabel(date);
-          const rate = p.clients?.commission_rate ?? 0;
+          const rate = p.clients?.commission_rate ?? 60;
           const commission = (p.amount * rate) / 100;
 
           if (!monthMap.has(key)) {
@@ -137,7 +137,7 @@ export default function Analytics() {
 
         payments?.forEach((p: any) => {
           const name = p.clients?.name ?? "Unknown";
-          const rate = p.clients?.commission_rate ?? 0;
+          const rate = p.clients?.commission_rate ?? 60;
           const commission = (p.amount * rate) / 100;
 
           clientMap.set(name, (clientMap.get(name) ?? 0) + commission);

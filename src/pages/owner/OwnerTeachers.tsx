@@ -70,11 +70,14 @@ export default function OwnerTeachers() {
             const teacherStats = await Promise.all((profiles || []).map(async (t) => {
                 const { data: payments } = await supabase
                     .from("payments")
-                    .select("amount")
+                    .select("amount, clients(commission_rate)")
                     .eq("user_id", t.id)
                     .in("status", ["approved", "paid"]);
 
-                const totalEarnings = payments?.reduce((acc, p) => acc + p.amount, 0) || 0;
+                const totalEarnings = payments?.reduce((acc, p: any) => {
+                    const rate = p.clients?.commission_rate ?? 60;
+                    return acc + (p.amount * rate / 100);
+                }, 0) || 0;
 
                 const { data: settlements } = await supabase
                     .from("settlements")

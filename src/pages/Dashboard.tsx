@@ -91,7 +91,7 @@ export default function Dashboard() {
           payments?.reduce((sum, p: any) => {
             if (p.is_opening_balance) return sum + p.amount;
             if (p.status !== 'paid' && p.status !== 'approved') return sum;
-            const rate = p.clients?.commission_rate ?? 0;
+            const rate = p.clients?.commission_rate ?? 60;
             return sum + p.amount * (rate / 100);
           }, 0) ?? 0;
 
@@ -121,7 +121,7 @@ export default function Dashboard() {
             if (p.is_opening_balance) return sum;
             const d = new Date(p.payment_date);
             if (d >= monthStart && d <= monthEnd) {
-              const rate = p.clients?.commission_rate ?? 0;
+              const rate = p.clients?.commission_rate ?? 60;
               return sum + p.amount * (rate / 100);
             }
             return sum;

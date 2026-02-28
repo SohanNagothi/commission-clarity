@@ -22,7 +22,7 @@ export function AddClientDialog({
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [defaultFee, setDefaultFee] = useState("");
-  const [commission, setCommission] = useState("");
+  const [commission, setCommission] = useState("60");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 

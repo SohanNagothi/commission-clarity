@@ -51,6 +51,9 @@ export default function OwnerApprovals() {
                 .select(`
                   id,
                   user_id,
+                  amount,
+                  month_for,
+                  reference_proof,
                   created_at,
                   clients ( name, commission_rate, default_fee ),
                   profiles!user_id ( full_name, email )

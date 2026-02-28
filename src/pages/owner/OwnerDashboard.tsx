@@ -25,7 +25,8 @@ export default function OwnerDashboard() {
         revenue: 0,
         pendingFeeApprovals: 0,
         pendingSettlements: 0,
-        students: 0
+        students: 0,
+        ownerEarnings: 0
     });
     const [loading, setLoading] = useState(true);
 
@@ -69,12 +70,25 @@ export default function OwnerDashboard() {
             // Total Approved/Paid Revenue
             const { data: payments, error: paymentsError } = await supabase
                 .from("payments")
-                .select("amount")
+                .select(`
+                    amount,
+                    clients ( commission_rate )
+                `)
                 .in("user_id", teacherIds)
                 .in("status", ["approved", "paid"]);
 
             if (paymentsError) throw paymentsError;
+
             const totalRevenue = payments?.reduce((acc, p) => acc + p.amount, 0) || 0;
+            const totalTeacherShare = payments?.reduce((acc, p: any) => {
+                const rate = p.clients?.commission_rate ?? 60;
+                return acc + (p.amount * rate / 100);
+            }, 0) || 0;
+
+            const totalOwnerEarnings = payments?.reduce((acc, p: any) => {
+                const rate = p.clients?.commission_rate ?? 60;
+                return acc + (p.amount * (100 - rate) / 100);
+            }, 0) || 0;
 
             // 4. Fetch Settlements (Total paid out by owner to these teachers)
             const { data: settlements, error: settlementsError } = await supabase
@@ -89,8 +103,9 @@ export default function OwnerDashboard() {
                 teachers: teacherIds.length,
                 revenue: totalRevenue,
                 pendingFeeApprovals: pendingFeeCount || 0,
-                pendingSettlements: totalRevenue - totalSettled, // Simple calculation for now
-                students: studentCount || 0
+                pendingSettlements: Math.max(0, totalTeacherShare - totalSettled),
+                students: studentCount || 0,
+                ownerEarnings: totalOwnerEarnings
             });
         } catch (err) {
             console.error(err);
@@ -170,8 +185,8 @@ export default function OwnerDashboard() {
                 />
                 <StatCard
                     title="Owner Earnings"
-                    value={loading ? "..." : formatCurrency(stats.revenue * 0.4)} // 40% commission default
-                    subtitle="Est. earnings (40%)"
+                    value={loading ? "..." : formatCurrency((stats as any).ownerEarnings || 0)}
+                    subtitle="Based on student rates"
                     icon={TrendingUp}
                     variant="success"
                 />
